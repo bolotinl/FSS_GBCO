@@ -14,17 +14,18 @@ theme_set(theme(legend.position = "none",panel.background = element_blank(),
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("all_SC_data.rds")
 sapply(dat, class)
+## Add some important details
 dat$Date <- as.POSIXct(as.character(dat$Date), format = "%Y-%m-%d")
 dat$Year <- year(dat$Date) 
 dat$Year <- as.factor(dat$Year)
 dat$doy <- strftime(dat$Date, format = "%j")
 dat$doy <- as.numeric(as.character(dat$doy))
-
-dat$SiteDoy <- paste0(dat$SiteID, " ", dat$doy)
+# dat$SiteDoy <- paste0(dat$SiteID, " ", dat$doy)
 
 ## NOT FLOW CORRECTED ####################
 ## Example Plots of Mean Time Series #####
 avg <- dat
+## Average across all values for each day of the year (doy) to get one representative time series
 avg <- avg %>%
   group_by(SiteID, doy) %>%
   summarise_at(.vars = "SpC", .funs = c("mean" = mean))
@@ -33,32 +34,68 @@ avg <- avg %>%
 # check_avg <- mean(check$SpC)
 # rm(check, check_avg) # all good
 
+## See how many doy's of data each site has
 avg_count <- table(avg$SiteID) %>%
   as.data.frame()
 
-avg_count <- filter(avg_count, Freq > 219) 
+## Begin by subsetting by sites that have >= 60% of the 365 day year
+avg_count <- filter(avg_count, Freq >= 219)
+## Subset the averaged data by this new site selection
 avg <- filter(avg, SiteID %in% avg_count$Var1)
 avg$SiteID <- factor(avg$SiteID)
-levels(avg$SiteID) # 261 as opposed to 85
+levels(avg$SiteID) # 263 sites when we increase the minimum required days  and average before subsetting, as opposed to 85 when we required >= 350 days and averaged across doy's after subsetting
 
-# take a look at the gaps you now have to get an idea of how big they might be
-doys <-  seq(1,366) %>%
+## Take a look at the gaps to get an idea of how big they might be
+## To see this, we want to create this df:
+gap_summary <- levels(avg$SiteID) %>%
+  as.data.frame()
+colnames(gap_summary) <- "SiteID"
+gap_summary$max_gap <- NA 
+
+# create temporary df for calculating gap size
+doys <-  seq(1,365) %>%
   as.data.frame()
 colnames(doys) <- "doys"
-site <- "USGS-09521100"
-ex_site <- filter(avg, SiteID == site)
+
+quantify_gap <- function(num){
+site <- gap_summary$SiteID[num]
+ex_site <- filter(avg, SiteID == print(paste(site)))
 check_gaps <- merge(doys, ex_site, by.x = "doys", by.y = "doy", all.x = TRUE)
 check_gaps$logical <- check_gaps$mean
 res <- rle(is.na(check_gaps$mean))
 check_gaps$gaps <- rep(res$values*res$lengths,res$lengths)
 max <- max(check_gaps$gaps)
+gap_summary$max_gap[which(gap_summary$SiteID == gap_summary$SiteID[num])] <<- max
+}
 
+## Test on one site:
+# quantify_gap(8) 
 
+## Create list and apply function to it: 
+input_list <- seq(nrow(gap_summary))
+lapply(input_list, quantify_gap)
 
+## For now, subset the data by the sites that have >= 219 days of data and =< 3 day gaps
+gap_summary <- filter(gap_summary, max_gap <= 3)
+avg <- filter(avg, SiteID %in% gap_summary$SiteID)
 
+## Try plotting data:
 ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
   geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
   geom_line(subset(avg, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = mean), color = "black")
+
+## Format the avg dataframe for input to the clustering code
+## Look to this file for guidance
+Example_avgTS_PSavoy <- readRDS("/Volumes/Blaszczak Lab/FSS/All Data/Example_avgTS_PSavoy.rds")
+sapply(Example_avgTS_PSavoy, class)
+
+sapply(avg, class)
+colnames(avg) <- c("SiteID", "doy", "mean_SpC")
+
+## Save the averaged data to a dataframe
+saveRDS(avg, "SC_avg.rds")
+
+
 #####
 
 ## Example Plots of Upper Quantile Time Series ####
@@ -138,7 +175,6 @@ p1 <- ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
   geom_line(subset(avg, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = mean), color = "red")
 
 saveRDS(low_quart, "SC_low_quart.rds")
-saveRDS(avg, "SC_avg.rds")
 saveRDS(up_quart, "SC_up_quart.rds")
 saveRDS(med, "SC_med.rds")
 # Iterate through all sites to make the plot of all data + quantiles + mean
