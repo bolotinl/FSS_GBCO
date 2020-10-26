@@ -5,16 +5,14 @@ library(rgdal)
 library(tidyverse)
 # This is done based solely on SC data
 # Bring in WQP site data
-setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/WQP Formatted Meta")
-WQP <- read.csv("WQP_formatted_metadata_WQ.csv", header = T) # 32,722 WQP sites with flowing waters
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+WQP <- read.csv("WQP_formatted_metadata_WQ.csv", header = T) 
 
 # Bring in finalized sites of interest for SC
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 sites <- readRDS("all_SC_data.rds")
 # subset WQP site data only for the sites used in analysis of SC
 dat <- subset(WQP, WQP$SiteID %in% sites$SiteID) # 25623 sites 
-# ?? We're missing 1 USGS site
-#dat <- WQP
 rm(sites, WQP)
 
 # Check coordinates
@@ -39,7 +37,7 @@ ctest_long[is.na(ctest_long$Num),]; ctest_long[is.na(ctest_long$Dec),] ## 0
 ## Fix WQP coordinate issues
 ###########################################
 ## Adjust or remove specific sites that are still problematic (see GRDO_check_WQP_coords)
-# says Longitude: -17.74332
+# says Longitude: -17.74332:
 dat <- dat[-which(dat$SiteID == "NFRIA-North Fork Below Leroux Creek"),]
 dat$SiteID <- factor(dat$SiteID)
 levels(dat$SiteID)
@@ -105,7 +103,7 @@ length(dat$SiteID) == length(dat.merged$SiteID)
 ###########
 ## Export
 ###########
-setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/WQP Formatted Meta")
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 head(dat.merged)
 saveRDS(dat.merged, "WQP_location_data_WGS84.rds")
 
@@ -119,6 +117,6 @@ dat.WGS84.projectNAD83 <- dat.merged %>%
 dat.WGS84.projectNAD83 <- dat.WGS84.projectNAD83 %>% mutate("Lat_NAD83" = st_coordinates(.)[,2],
                                     "Lon_NAD83" = st_coordinates(.)[,1])
 
-setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/WQP Formatted Meta")
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 head(dat.WGS84.projectNAD83)
 saveRDS(dat.WGS84.projectNAD83, "WQP_location_data_NAD83.rds")
