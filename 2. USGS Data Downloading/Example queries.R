@@ -45,11 +45,14 @@ source(here("concurrent_overlap.R"))
   SC_lotic_sensor <- subset(SC_query, SC_query$Site_ID %in% SC_lotic_sensor$Site_ID)
   disch_lotic_sensor <- subset(disch_query, disch_query$Site_ID %in% disch_lotic_sensor$Site_ID)
   
-  write.csv(SC_lotic_sensor, "all_SC_lotic_sensor.csv") # as opposed to SC_only which is sites that have SC and not disch
-  write.csv(disch_lotic_sensor,"all_disch_lotic_sensor.csv") # as opposed to disch_only which is sites that have disch and not SC
+  setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+  
+  write.csv(SC_lotic_sensor, "USGS_all_SC_lotic_sensor.csv") # as opposed to SC_only which is sites that have SC and not disch
+  write.csv(disch_lotic_sensor,"USGS_all_disch_lotic_sensor.csv") # as opposed to disch_only which is sites that have disch and not SC
   
   
 # Concurrent overlap doesn't necessarily matter for us since we are doing streamgage matching 
+
 #-------------------------------------------------
 #Filter for all lotic NWIS sites with specific conductivity and discharge sensors (subdaily or daily)  
 #-------------------------------------------------
