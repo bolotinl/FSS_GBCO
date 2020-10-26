@@ -3,9 +3,9 @@
 lapply(c("plyr","dplyr","ggplot2","cowplot",
          "lubridate","tidyverse", "readxl", "dataRetrieval"), require, character.only=T)
 
-## Set wd to meta raw folder
-setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/WQP Raw Meta")
-files <- list.files(path = getwd(), pattern = ".csv")
+## Set wd and bring in metadata files
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+files <- list.files(path = getwd(), pattern = "station-ions")
 file <- files[1]
 HUC1415 <- fread(file)
 HUC1415$HUC <- substr(HUC1415$HUCEightDigitCode, 1, 2)
@@ -14,29 +14,30 @@ file <- files[2]
 HUC16 <- fread(file)
 HUC16$HUC <- "16"
 HUC16$file <- paste(file)
-
+## Merage all metadata together
 meta <- rbind(HUC1415, HUC16, deparse.level = 1)
 
 head(meta)
 names(meta)
 
 
-## Subset
+## Subset columns
 sub <- meta[,c("MonitoringLocationIdentifier","MonitoringLocationName","MonitoringLocationTypeName",
                "HUCEightDigitCode", "DrainageAreaMeasure/MeasureValue","LatitudeMeasure", "LongitudeMeasure",
                "HorizontalCoordinateReferenceSystemDatumName","VerticalMeasure/MeasureValue", "CountryCode", "StateCode",
                "HUC","file")]
-rm(HUC1415, HUC16)
-## rename columns
+rm(HUC1415, HUC16, meta, file, files)
+
+## Rename columns
 colnames(sub) <- c("SiteID","SiteID_LongName","WaterBodyType","HUCEightDigitCode","WatershedArea_sqkm","Latitude","Longitude",
                    "Coord_Units","Altitude_feet","Country","State", "HUC","file")
-## coerce state codes to state abbreviations
+
+## Coerce state codes to state abbreviations
 sub$State <- factor(as.character(sub$State)) # temporarily convert to a factor so we can see the levels
 levels(sub$State)
-## rerun lines 22-27 to turn back from factor to numeric so we can convert WQP state code to common state code
+sub$State <- as.numeric(as.character(sub$State)) # turn back from factor to numeric so we can convert WQP state code to common state code
 ## codes found at: https://www.mcc.co.mercer.pa.us/dps/state_fips_code_listing.htm
 class(sub$State)
-sub$State <- as.numeric(as.character(sub$State))
 sub$State2 <- sub$State
 sub$State2[which(sub$State == 4)] <- "AZ"
 sub$State2[which(sub$State == 16)] <- "ID"
@@ -61,7 +62,7 @@ sub <- rename (sub, State = State2)
 head(sub)
 tail(sub)
 
-## Filter out to only include flowing waters
+## Filter to only include flowing waters
 WBT <- sub %>% group_by(WaterBodyType) %>% count()
 levels(as.factor(sub$WaterBodyType))
 
@@ -79,9 +80,10 @@ names(sub2)
 class(sub2$SiteID)
 sub2$SiteID <- factor(sub2$SiteID)
 levels(sub2$SiteID)
+rm(sub, WBT, acceptable_sitetypes)
 
 ## Export
-setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/WQP Formatted Meta")
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 write.csv(sub2, "WQP_formatted_metadata_WQ.csv")
 
 
