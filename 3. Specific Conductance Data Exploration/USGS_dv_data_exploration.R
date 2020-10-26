@@ -14,7 +14,7 @@ sapply(SC, class)
 SC$dqi <- as.factor(SC$dqi)
 levels(SC$dqi)
 # [1] "A"     "A [4]" "A e"   "P"     "P [4]" "P Dis" "P Dry" "P Eqp" "P Ice"
-# count(SC$dqi)
+# table(SC$dqi)
 # x   freq
 # A          365715   ~ 98% Approved for publication -- Processing and review completed.
 # A [4]      236      ??Discharge less than indicated value which is Minimum Recordable Discharge at this site
@@ -38,6 +38,7 @@ count(SC$dqi)
 # 4   P        6832
 # 5   P [4]    84
 
+## get rid of all data with a dqi other than "A" (approved for publication)
 SC <- subset(SC, dqi == "A")
 sapply(SC, class)
 SC$SiteID <- as.factor(SC$SiteID)
