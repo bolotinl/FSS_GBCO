@@ -1,26 +1,25 @@
-# We have now formatted WQP time series data and metadata
-# While formatting the metadata, we filtered sites for those that are flowing waters
-# We now need to filter the time series (TS) data to include only these sites
-# **So far, we have only done this for specific conductance, and will need to re-do it for flow and other
-# water quality parameters
+# We have formatted WQP time series data and metadata
+# While formatting the metadata, we filtered sites for flowing waters
+# We need to filter the time series data to include only these sites
+# **So far, we have only done this for specific conductance, and will need to re-do it for flow and other water quality parameters if we decide to use them
 
 # Set working directory and bring in data:
-setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/WQP Formatted TS")
-# before formatting the TS there were 69,735 sites
-TS <- read.csv("WQ_TS.csv") # 64,130 after formatting the TS
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+TS <- read.csv("WQP_TS.csv")
 class(TS$SiteID)
-levels(TS$SiteID)
+TS$SiteID <- factor(TS$SiteID)
+levels(TS$SiteID) # 64,130
 
-setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/WQP Formatted Meta")
-meta <- read.csv("WQP_formatted_metadata_WQ.csv") # 32,772 sites 
-# Formatted metadata was already filtered for acceptable site types
-
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+meta <- read.csv("WQP_formatted_metadata_WQ.csv") 
 names(TS)
 names(meta)
 
 # Subset TS data accordingly for acceptable site types: 
 TS_sub <- subset(TS, TS$SiteID %in% meta$SiteID)
+TS_sub$SiteID <- factor(TS_sub$SiteID)
+levels(TS_sub$SiteID) # 28,805
 
-# Output a csv with just the SC data:
-setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/WQP Formatted TS")
-write.csv(TS_sub, "WQ_TS_final_sites.csv")
+# Output a csv:
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+write.csv(TS_sub, "WQP_TS_final_sites.csv")
