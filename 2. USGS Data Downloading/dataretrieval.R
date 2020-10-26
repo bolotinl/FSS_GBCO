@@ -1,14 +1,12 @@
 #downloading flow and spc data using dataretrieval package
 #6/1/20
-#setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/USGS Data Retrieval from Phil")
-#setwd("~/Desktop/Blaszczak Lab/GB CO WQ Data/USGS Data Retrieval from Phil/dataretrieval flow and spc")
 
 library(dataRetrieval)
 library(tidyverse)
 library(data.table)
-
-disch_huc_sites <- readRDS("GBCO_disch_sites.rds") # all lotic disch sites in the GBCO
-SC_huc_sites <- readRDS("GBCO_SC_sites.rds") # all lotic SC sites in the GBCO
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+disch_huc_sites <- readRDS("USGS_disch_sites.rds") # all lotic disch sites in the GBCO
+SC_huc_sites <- readRDS("USGS_SC_sites.rds") # all lotic SC sites in the GBCO
 
 #parameter codes: 00060-discharge 00095-specific conductance
 #pull data using dataretrieval package
@@ -27,6 +25,7 @@ parameterCd <- "00060"
 startDate <- ""  
 endDate <- "" 
 # if statCd is not specified, it defaults to 00003 (mean) this is ok
+# I downloaded the data in chunks
 discharge <- readNWISdv(siteNumber[1:1000], 
                         parameterCd, startDate, endDate)
 discharge2 <- readNWISdv(siteNumber[1001:2000], 
@@ -83,6 +82,7 @@ saveRDS(SCdv, "USGS_SC_dv_data.rds")
 siteNumber <- SC_huc_sites$Site_ID[which(SC_huc_sites$data_type_cd == "uv")]
 class(siteNumber)
 # there are 73 sites with uv SC data
+# I downloaded this data in chunks
 SCuv1 <- readNWISuv(siteNumber[1:5], parameterCd, 
                    startDate, endDate) 
 SCuv2 <- readNWISuv(siteNumber[6:26], parameterCd, 
@@ -99,7 +99,7 @@ saveRDS(SCuv3, "USGS_SC_uv3_data.rds")
 saveRDS(SCuv4, "USGS_SC_uv4_data.rds")
 
 #----------------------------
-# Combine data files #####
+# Combine data files that were downloaded in chunks #####
 #----------------------------
 # clear environment after each one to save space
 # SC_uv
