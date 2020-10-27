@@ -84,6 +84,26 @@ ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
   geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
   geom_line(subset(avg, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = mean), color = "black")
 
+## Create a heatmap to show the years covered at each site
+# subset all_SC_data.rds for the sites used to make averaged TS
+sub <- subset(dat, dat$SiteID %in% avg$SiteID)
+
+sapply(sub, class)
+sub$Year <- as.numeric(as.character(sub$Year))
+
+
+ggplot(sub)+
+  geom_tile(mapping = aes(x = Year, y = SiteID))
+
+ggplot(sub)+
+  geom_histogram(mapping = aes(x = Year), binwidth = 1, color = "white")
+
+sub_plot <- dplyr::select(sub, c("SiteID", "Year"))
+sub_plot <- unique(sub_plot)
+ggplot(sub_plot)+
+  geom_col(mapping = aes(x = Year, y = nlevels(SiteID)))
+
+
 ## Format the avg dataframe for input to the clustering code
 ## Look to this file for guidance
 Example_avgTS_PSavoy <- readRDS("/Volumes/Blaszczak Lab/FSS/All Data/Example_avgTS_PSavoy.rds")
