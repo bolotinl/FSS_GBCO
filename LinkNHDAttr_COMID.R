@@ -100,8 +100,7 @@ rm(newly_indexed, not_indexed, not_indexed_list, USGS_metadata, USGS)
 
 ## WQP Sites:
 head(WQP_meta)
-WQP_meta <- select(WQP_meta, c("X", "Lon_NAD83", "Lat_NAD83"))
-colnames(WQP_meta)[1] <- "SiteID"
+WQP_meta <- select(WQP_meta, c("SiteID", "Lon_NAD83", "Lat_NAD83"))
 
 WQP_sites <- WQP_meta$SiteID
 WQP_sites <- as.data.frame(WQP_sites)
