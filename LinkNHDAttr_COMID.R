@@ -8,8 +8,8 @@ dat <- readRDS("all_SC_data.rds")
 USGS <- subset(dat, dat$Source == "USGS")
 WQP <- subset(dat, dat$Source == "WQP")
 
-setwd("/Volumes/Blaszczak Lab/FSS/WQP Data/WQP Formatted Meta")
-WQP_meta <- read.csv("WQP_location_data_NAD83.csv")
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+WQP_meta <- readRDS("WQP_location_data_NAD83.rds")
 
 setwd("/Volumes/Blaszczak Lab/FSS/NHD/USGS_Streamgages-NHD_Locations_Shape")
 NHD <- st_read("USGS_Streamgages-NHD_Locations.shp")
