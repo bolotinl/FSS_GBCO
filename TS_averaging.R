@@ -2,6 +2,10 @@
 # Visualize what multiple years of data at one sight looks like plotted on top of each other
 # Create "averaged" (or quantile) time series of specific conductance for each site of interest
 #################################################################################
+### NOTE: currently, this script dismisses the subset_data_availability.R script
+### this script has it's own section for subsetting data, but it does it AFTER
+### averaging across years and creating representative time series whereas the other 
+### script subsets data first and the output would be assigned directly to avg in this script
 ## Bring in necessary packages
 rm(list=ls())
 x <- c("tidyverse", "data.table", "lubridate", "zoo")
@@ -26,102 +30,11 @@ dat$doy <- as.numeric(as.character(dat$doy))
 dat <- select(dat, -c("SiteDate"))
 dat <- mutate(dat, SiteYear = paste(SiteID, Year, sep = " "))
 
-## Count how many days of the year each site-year has, we want at least 219 days (60%) of the year
-dat_count <- plyr::count(dat, vars = "SiteYear")
-dat_count <- filter(dat_count, freq >= 219)
-sub <- subset(dat, dat$SiteYear %in% dat_count$SiteYear)
-
-## Analyze how long the gaps are for each site-year, we want gaps that are =< 3 days
-# set up df
-gap_summary <- levels(as.factor(sub$SiteYear)) %>%
-  as.data.frame()
-colnames(gap_summary) <- "SiteYear"
-gap_summary$max_gap <- NA 
-
-# create temporary df for calculating gap size in the function we're about to create
-doys <-  seq(1,365) %>%
-  as.data.frame()
-colnames(doys) <- "doys"
-
-# create function for finding gap size
-quantify_gap <- function(num){
-  site <- gap_summary$SiteYear[num]
-  ex_site <- filter(dat, SiteYear == print(paste(site)))
-  check_gaps <- merge(doys, ex_site, by.x = "doys", by.y = "doy", all.x = TRUE) # This is where the code is breaking because this isn't the averaged year data
-  check_gaps$logical <- check_gaps$SpC
-  res <- rle(is.na(check_gaps$SpC))
-  check_gaps$gaps <- rep(res$values*res$lengths,res$lengths)
-  max <- max(check_gaps$gaps)
-  gap_summary$max_gap[which(gap_summary$SiteYear == gap_summary$SiteYear[num])] <<- max
-}
-
-# Test on one site:
-# quantify_gap(8) 
-
-# Create list and apply function to it: 
-input_list <- seq(nrow(gap_summary))
-lapply(input_list, quantify_gap)
-
-## Subset the data by the sites that have >= 219 days of data and =< 3 day gaps (sub)
-gap_summary <- filter(gap_summary, max_gap <= 3)
-sub <- filter(sub, SiteYear %in% gap_summary$SiteYear)
-
-## Plot data availability
-dat_availability <- select(sub, c("SiteID", "Year"))
-dat_availability <- unique(dat_availability)
-
-p <- ggplot(dat_availability)+
-  geom_histogram(mapping = aes(x = as.numeric(as.character(Year)), fill = SiteID), binwidth = 1, color = "white")+
-  labs(x = "Year", y = "n(Sites)", title = "Data Availability")
-print(p)
-# There are the most sites with data for the last 5 or so years (consecutively)
-dat_table <- plyr::count(dat_availability, vars = "Year")
-# 2018, 2012, 2017, 2019, 2015 (17)
-
-## Subset for 2017, 2018, & 2019 and only sites that have all three of these years
-# 2017-2019
-sub$Year <- as.numeric(as.character(sub$Year)) 
-sub2 <- filter(sub, Year > 2016)
-sub2$SiteID <- factor(sub2$SiteID)
-
-# All three years (2017-2019)
-# subset_POR <- function(num) {
-#   sites <- levels(as.factor(sub2$SiteID)) %>%
-#     as.data.frame()
-#   colnames(sites) <- "SiteID"
-#   sites$nYears <- NA
-#   site <- sites$SiteID[num]
-#   sub2$Year <- as.factor(sub2$Year)
-#   sub2$Year <- factor(sub2$Year)
-#   sites$nYears[which(sites$SiteID == sites$SiteID[num])] <<- nlevels(sub2$Year[which(sub2$SiteID == sub2$SiteID[num])])
-# }
-# 
-# lapply(seq(1:33), subset_POR) # 33 is the length of the list of sites in sub2
-# # this suggests that all the remaining sites have all three years, but that doesn't really make sense...
-# use this approach again but with sub2 instead of sub:
-dat_availability <- select(sub2, c("SiteID", "Year"))
-dat_availability <- unique(dat_availability)
-
-p <- ggplot(dat_availability)+
-  geom_histogram(mapping = aes(x = as.numeric(as.character(Year)), fill = SiteID), binwidth = 1, color = "white")+
-  labs(x = "Year", y = "n(Sites)", title = "Data Availability")
-print(p)
-
-sub2017 <- subset(sub2, sub2$Year == 2017)
-sub2018 <- subset(sub2, sub2$Year == 2018)
-sub2019 <- subset(sub2, sub2$Year == 2019)
-
-sub1718 <- intersect(sub2017$SiteID, sub2018$SiteID)
-sub1819 <- intersect(sub2018$SiteID, sub2019$SiteID)
-sub171819 <- intersect(sub1718, sub1819)
-# 9 sites have all three years
-sub3 <- subset(sub2, sub2$SiteID %in% sub171819)
-
 ## NOT FLOW CORRECTED ####################
 ## Example of Mean Time Series #####
 ## Make a copy of dat
 #avg <- dat
-avg <- sub3
+avg <- dat
 ## Average across all values for each day of the year (doy) to get one representative time series
 avg <- avg %>%
   group_by(SiteID, doy) %>%
@@ -132,57 +45,54 @@ avg <- avg %>%
 # check_avg <- mean(check$SpC)
 # rm(check, check_avg) # all good
 
-## See how many doy's of data each site has
-# avg_count <- table(avg$SiteID) %>%
-#   as.data.frame()
-# 
-# ## Begin by subsetting by sites that have >= 60% of the 365 day year
-# avg_count <- filter(avg_count, Freq >= 219)
-# 
-# ## Subset the averaged data by this new site selection
-# avg <- filter(avg, SiteID %in% avg_count$Var1)
-# avg$SiteID <- factor(avg$SiteID)
-# levels(avg$SiteID) # 263 sites when we increase the minimum required days  and average before subsetting, as opposed to 85 when we required >= 350 days and averaged across doy's after subsetting
+# See how many doy's of data each site has
+avg_count <- table(avg$SiteID) %>%
+  as.data.frame()
 
-# ## Take a look at the gaps to get an idea of how big they might be
-# ## To see this, we want to create this df:
-# gap_summary <- levels(avg$SiteID) %>%
-#   as.data.frame()
-# colnames(gap_summary) <- "SiteID"
-# gap_summary$max_gap <- NA 
-# 
-# # create temporary df for calculating gap size
-# doys <-  seq(1,365) %>%
-#   as.data.frame()
-# colnames(doys) <- "doys"
-# 
-# quantify_gap <- function(num){
-# site <- gap_summary$SiteID[num]
-# ex_site <- filter(avg, SiteID == print(paste(site)))
-# check_gaps <- merge(doys, ex_site, by.x = "doys", by.y = "doy", all.x = TRUE)
-# check_gaps$logical <- check_gaps$mean
-# res <- rle(is.na(check_gaps$mean))
-# check_gaps$gaps <- rep(res$values*res$lengths,res$lengths)
-# max <- max(check_gaps$gaps)
-# gap_summary$max_gap[which(gap_summary$SiteID == gap_summary$SiteID[num])] <<- max
-# }
-# 
-# ## Test on one site:
-# # quantify_gap(8) 
-# 
-# ## Create list and apply function to it: 
-# input_list <- seq(nrow(gap_summary))
-# lapply(input_list, quantify_gap)
-# 
-# ## For now, subset the data by the sites that have >= 219 days of data and =< 3 day gaps
-# gap_summary <- filter(gap_summary, max_gap <= 3)
-# avg <- filter(avg, SiteID %in% gap_summary$SiteID)
+## Begin by subsetting by sites that have >= 60% of the 365 day year
+avg_count <- filter(avg_count, Freq >= 219)
 
-## Try plotting data:
-# ggplot(subset(dat, dat$SiteID == "USGS-09085150"))+
-#   geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
-#   geom_line(subset(avg, avg$SiteID == "USGS-09085150"), mapping = aes(x = doy, y = mean), color = "black")
-ggplot(subset(sub3, sub3$SiteID == "USGS-09085150"))+
+## Subset the averaged data by this new site selection
+avg <- filter(avg, SiteID %in% avg_count$Var1)
+avg$SiteID <- factor(avg$SiteID)
+levels(avg$SiteID) # 263 sites when we increase the minimum required days  and average before subsetting, as opposed to 85 when we required >= 350 days and averaged across doy's after subsetting
+
+## Take a look at the gaps to get an idea of how big they might be
+## To see this, we want to create this df:
+gap_summary <- levels(avg$SiteID) %>%
+  as.data.frame()
+colnames(gap_summary) <- "SiteID"
+gap_summary$max_gap <- NA
+
+# create temporary df for calculating gap size
+doys <-  seq(1,365) %>%
+  as.data.frame()
+colnames(doys) <- "doys"
+
+quantify_gap <- function(num){
+site <- gap_summary$SiteID[num]
+ex_site <- filter(avg, SiteID == print(paste(site)))
+check_gaps <- merge(doys, ex_site, by.x = "doys", by.y = "doy", all.x = TRUE)
+check_gaps$logical <- check_gaps$mean
+res <- rle(is.na(check_gaps$mean))
+check_gaps$gaps <- rep(res$values*res$lengths,res$lengths)
+max <- max(check_gaps$gaps)
+gap_summary$max_gap[which(gap_summary$SiteID == gap_summary$SiteID[num])] <<- max
+}
+
+## Test on one site:
+# quantify_gap(8)
+
+## Create list and apply function to it:
+input_list <- seq(nrow(gap_summary))
+lapply(input_list, quantify_gap)
+
+## For now, subset the data by the sites that have >= 219 days of data and =< 3 day gaps
+gap_summary <- filter(gap_summary, max_gap <= 3)
+avg <- filter(avg, SiteID %in% gap_summary$SiteID)
+
+# Try plotting data:
+ggplot(subset(dat, dat$SiteID == "USGS-09085150"))+
   geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
   geom_line(subset(avg, avg$SiteID == "USGS-09085150"), mapping = aes(x = doy, y = mean), color = "black")
 
