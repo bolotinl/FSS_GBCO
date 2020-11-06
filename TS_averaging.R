@@ -1,5 +1,4 @@
 #################### Lauren Bolotin - bolotinljb@gmail.com ######################
-# Subset data for availability requirements
 # Visualize what multiple years of data at one sight looks like plotted on top of each other
 # Create "averaged" (or quantile) time series of specific conductance for each site of interest
 #################################################################################
