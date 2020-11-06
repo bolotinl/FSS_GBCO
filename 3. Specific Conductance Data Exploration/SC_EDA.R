@@ -130,7 +130,7 @@ SC_continuous$Year <- as.factor(SC_continuous$Year)
 heatmap <- ggplot(SC, aes(x = Year, y = SiteID)) +
   geom_tile(color = "red", fill = "red")+
   theme(axis.text.y=element_blank())+
-  xlim(1900,2020)+
+  xlim(1970,2020)+
   theme(plot.margin=unit(c(0.5,1,0.5,0.5),"cm"))+
   labs(title = "Data Availability", subtitle = "All SC Data")+
   theme(plot.title = element_text(hjust = 0.5),  plot.subtitle = element_text(hjust = 0.5))
