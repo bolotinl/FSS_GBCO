@@ -1,6 +1,6 @@
 #################### Lauren Bolotin - bolotinljb@gmail.com ######################
 # Identify data availability
-# Subset data for availability requirements
+# Subset data for availability requirements BEFORE averaging doy's across years
 #################################################################################
 # Bring in packages
 rm(list=ls())
