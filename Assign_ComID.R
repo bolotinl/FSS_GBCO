@@ -2,11 +2,11 @@
 # Assign NHD ComID's to USGS and Water Quality Data Portal (WQP) sites
 ##########################################################################################
 ## Bring in packages
-x <- c("sf", "rgdal", "raster", "tidyverse", "nhdplusTools")
+x <- c("sf", "rgdal", "raster", "tidyverse", "nhdplusTools", "beepr")
 lapply(x, require, character.only = TRUE)
 rm(x)
 
-## Bring in time series data so we know what sites we need to assign ComID's to
+## Bring in time series data from the project so we know what sites we need to assign ComID's to
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("all_SC_data.rds")
 ## Separate USGS and WQP data because we will process them differently
@@ -28,11 +28,11 @@ colnames(NHD)[3] <- "SiteID"
 NHD <- subset(NHD, NHD$SiteID %in% USGS$SiteID)
 head(NHD)
 NHD <- select(NHD, c("SiteID", "LON_NHD", "LAT_NHD", "HUC", "STATE_CD", "DA_SQ_MILE"))
-  # See what sites from our data were not in NHD
+  # See what USGS sites from our data were not in NHD
 remainder <- setdiff(USGS$SiteID, NHD$SiteID)
-  # Bring in other metadata for these sites
+  # Bring in other USGS metadata for these sites
 setwd("/Users/laurenbolotin/Desktop/Blaszczak Lab/GB CO WQ Data/USGS Data Retrieval from Phil")
-USGS_meta <- readRDS("GBCO_SC_sites.rds")
+USGS_meta <- readRDS("GBCO_SC_sites.rds") # This file is a subset from the specific conductance site query (only sites in the GB and CO River basin)
 USGS_meta$Site_ID <- ifelse(USGS_meta$Site_ID < 10000000, paste0("0", USGS_meta$Site_ID), paste0(USGS_meta$Site_ID))
 USGS_meta$Site_ID <- paste0("USGS-", USGS_meta$Site_ID)
 colnames(USGS_meta)[1] <- "SiteID"
@@ -102,8 +102,17 @@ head(USGS_sites)
   }
   lapply(WQP_sites$SiteID, findCOMID_WQP_coords) # < 2 hrs
   
-library(beepr)
-beep()
+beep() # makes a noise when the function is done running (since it takes over an hour)
+
+# NOTE: in the end, we probably could have kept the WQP and USGS data combined since we were able to use lat/long for all
+  # WQP sites and either lat/long or USGS Site ID for all USGS sites. The main reason you would potentially process them
+  # separately is if you could not assign a ComID for a WQP site using lat/long so you needed to use the WQP SiteID. 
+  # To do that, you would create a function similar to the one above that uses the USGS SiteID, but you would input the 
+  # WQP SiteID instead and you would change featureSource to = "WQP" and the featureID would = the WQP SiteID,
+  # as shown below in a generalized example.
+
+# nldi_feature <- list(featureSource = "WQP", featureID = WQP$SiteID)
+# discover_nldi_navigation(nldi_feature)
 
 ### SAVE/COMBINE OUPUTS ###############################################################################################
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
