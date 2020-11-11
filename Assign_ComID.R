@@ -1,7 +1,7 @@
 ####################### Lauren Bolotin bolotinljb@gmail.com ##############################
 # Assign NHD ComID's to USGS and Water Quality Data Portal (WQP) sites
 ##########################################################################################
-## Bring in packages
+## Bring in packages ###
 x <- c("sf", "rgdal", "raster", "tidyverse", "nhdplusTools", "beepr")
 lapply(x, require, character.only = TRUE)
 rm(x)
