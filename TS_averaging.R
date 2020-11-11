@@ -18,7 +18,7 @@ theme_set(theme(legend.position = "none",panel.background = element_blank(),
 
 ## Bring in all specific conductance data
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-dat <- readRDS("all_SC_data.rds")
+dat <- readRDS("all_SC_Q_data.rds")
 sapply(dat, class)
 
 ## Add some important details
@@ -249,12 +249,15 @@ saveRDS(med, "SC_med.rds")
 dat$SiteID <- factor(dat$SiteID)
 levels(dat$SiteID) # 85 sites
 
-# is.nan.data.frame <- function(x)
-#   do.call(cbind, lapply(x, is.nan))
-# 
-# dat[is.nan(dat)] <- NA
+is.nan.data.frame <- function(x)
+  do.call(cbind, lapply(x, is.nan))
+
+dat[is.nan(dat)] <- NA
 
 ## THIS IS FLOW CORRECTED ###############################
+dat$Spc_Qcms <- ifelse(dat$Q_cfs == 0.00, paste("0"), paste(dat$Spc_Qcms))
+dat$Spc_Qcms <- as.numeric(as.character(dat$Spc_Qcms))
+
 ## Rerun Quantile and Mean Code for Filtered Dataset ####
 ## Mean
 avg <- dat
@@ -286,7 +289,7 @@ p2 <- ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
   geom_line(subset(med, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = median), color = "black")+
   geom_line(subset(up_quart, up_quart$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = upper_quart), color = "black")+
   geom_line(subset(avg, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = mean), color = "red")
-
+print(p2)
 saveRDS(low_quart, "SC_Q_low_quart.rds")
 saveRDS(avg, "SC_Q_avg.rds")
 saveRDS(up_quart, "SC_Q_up_quart.rds")
