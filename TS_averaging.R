@@ -18,7 +18,8 @@ theme_set(theme(legend.position = "none",panel.background = element_blank(),
 
 ## Bring in all specific conductance data
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-dat <- readRDS("all_SC_Q_data.rds")
+# dat <- readRDS("all_SC_Q_data.rds")
+dat <- readRDS("all_SC_Q_data_v2.rds")
 sapply(dat, class)
 
 ## Add some important details
@@ -255,15 +256,125 @@ is.nan.data.frame <- function(x)
 dat[is.nan(dat)] <- NA
 
 ## THIS IS FLOW CORRECTED ###############################
-dat$Spc_Qcms <- ifelse(dat$Q_cfs == 0.00, paste("0"), paste(dat$Spc_Qcms))
+#dat$Spc_Qcms <- ifelse(dat$Q_cfs == 0.00, paste("0"), paste(dat$Spc_Qcms))
 dat$Spc_Qcms <- as.numeric(as.character(dat$Spc_Qcms))
 
 ## Rerun Quantile and Mean Code for Filtered Dataset ####
 ## Mean
 avg <- dat
+avg$Spc_Qcms <- as.numeric(as.character(avg$Spc_Qcms))
 avg <- avg %>%
   group_by(SiteID, doy) %>%
   summarise_at(.vars = "Spc_Qcms", .funs = c("mean" = mean))
+
+## Check that this worked 
+# check <- subset(dat, dat$SiteID == "USGS-09014050" & dat$doy == 1)
+# check_avg <- mean(check$SpC)
+# rm(check, check_avg) # all good
+
+# See how many doy's of data each site has
+avg_count <- table(avg$SiteID) %>%
+  as.data.frame()
+
+## Begin by subsetting by sites that have >= 60% of the 365 day year
+avg_count <- filter(avg_count, Freq >= 219)
+
+## Subset the averaged data by this new site selection
+avg <- filter(avg, SiteID %in% avg_count$Var1)
+avg$SiteID <- factor(avg$SiteID)
+levels(avg$SiteID) # 207 sites when we increase the minimum required days  and average before subsetting, as opposed to 85 when we required >= 350 days and averaged across doy's after subsetting
+
+## Take a look at the gaps to get an idea of how big they might be
+## To see this, we want to create this df:
+gap_summary <- levels(avg$SiteID) %>%
+  as.data.frame()
+colnames(gap_summary) <- "SiteID"
+gap_summary$max_gap <- NA
+
+# create temporary df for calculating gap size
+doys <-  seq(1,365) %>%
+  as.data.frame()
+colnames(doys) <- "doys"
+
+quantify_gap <- function(num){
+  site <- gap_summary$SiteID[num]
+  ex_site <- filter(avg, SiteID == print(paste(site)))
+  check_gaps <- merge(doys, ex_site, by.x = "doys", by.y = "doy", all.x = TRUE)
+  check_gaps$logical <- check_gaps$mean
+  res <- rle(is.na(check_gaps$mean))
+  check_gaps$gaps <- rep(res$values*res$lengths,res$lengths)
+  max <- max(check_gaps$gaps)
+  gap_summary$max_gap[which(gap_summary$SiteID == gap_summary$SiteID[num])] <<- max
+}
+
+## Test on one site:
+# quantify_gap(8)
+
+## Create list and apply function to it:
+input_list <- seq(nrow(gap_summary))
+lapply(input_list, quantify_gap)
+
+## For now, subset the data by the sites that have >= 219 days of data and =< 3 day gaps
+gap_summary <- filter(gap_summary, max_gap <= 3)
+avg <- filter(avg, SiteID %in% gap_summary$SiteID)
+
+# Try plotting data:
+ggplot(subset(dat, dat$SiteID == "USGS-09014050"))+
+  geom_line(mapping = aes(x = doy, y = Spc_Qcms, color = Year))+
+  geom_line(subset(avg, avg$SiteID == "USGS-09014050"), mapping = aes(x = doy, y = mean), color = "black")
+
+
+## Create a heatmap to show the years covered at each site
+# subset all_SC_data.rds for the sites used to make averaged TS
+sub <- subset(dat, dat$SiteID %in% avg$SiteID)
+
+sapply(sub, class)
+sub$Year <- as.numeric(as.character(sub$Year))
+
+ggplot(sub)+
+  geom_tile(mapping = aes(x = Year, y = SiteID))
+
+ggplot(sub)+
+  geom_histogram(mapping = aes(x = Year), binwidth = 1, color = "white")
+
+sub_plot <- dplyr::select(sub, c("SiteID", "Year"))
+sub_plot <- unique(sub_plot)
+site_count <- plyr::count(df = sub_plot, vars = "Year")
+
+ggplot(sub_plot)+
+  geom_col(mapping = aes(x = Year, y = nlevels(SiteID)))+
+  xlim(1975, 2020)
+
+Example_avgTS_PSavoy <- readRDS("/Volumes/Blaszczak Lab/FSS/All Data/Example_avgTS_PSavoy.rds")
+sapply(Example_avgTS_PSavoy, class)
+
+sapply(avg, class)
+colnames(avg) <- c("SiteID", "doy", "mean_SpC")
+
+## Save the averaged data to a dataframe
+#saveRDS(avg, "SC_avg.rds")
+saveRDS(avg, "SC_Q_avg.rds")
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## Upper Quantile
 up_quart <- dat
@@ -290,10 +401,12 @@ p2 <- ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
   geom_line(subset(up_quart, up_quart$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = upper_quart), color = "black")+
   geom_line(subset(avg, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = mean), color = "red")
 print(p2)
-saveRDS(low_quart, "SC_Q_low_quart.rds")
-saveRDS(avg, "SC_Q_avg.rds")
-saveRDS(up_quart, "SC_Q_up_quart.rds")
-saveRDS(med, "SC_Q_med.rds")
+# saveRDS(low_quart, "SC_Q_low_quart.rds")
+# saveRDS(avg, "SC_Q_avg.rds")
+# saveRDS(up_quart, "SC_Q_up_quart.rds")
+# saveRDS(med, "SC_Q_med.rds")
+saveRDS(avg, "SC_Q_avg_v2.rds")
+
 
 ## Rerun Code to Make PDF's of All Plots of All Data + Quantile + Mean
 dat$SiteID <- factor(dat$SiteID)
