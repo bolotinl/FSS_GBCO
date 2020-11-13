@@ -11,7 +11,8 @@ rm(x)
 ## Bring in data
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 SC <- readRDS("all_SC_data.rds")
-Q <- readRDS("USGS_disch_dqi.rds")
+# Q <- readRDS("USGS_disch_SubBySC_dqi.rds") # 527,187
+Q <- readRDS("USGS_disch_dqi.rds") # 558,554 # continue with original Q data for now
 
 colnames(SC)
 colnames(Q)
