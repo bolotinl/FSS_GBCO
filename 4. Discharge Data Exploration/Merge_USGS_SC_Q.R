@@ -51,3 +51,20 @@ sub_for_cont <- dat_complete %>%
 saveRDS(sub_for_cont, "continuous_SC_Q_data.rds")
 sub_for_cont$SiteID <- factor(sub_for_cont$SiteID)
 levels(sub_for_cont$SiteID) #85
+
+rm(list=ls())
+
+# Get rid of Inf, NA, and NaN's before using this data any more
+dat <- readRDS("all_SC_Q_data.rds")
+  # NaN's
+  is.nan.data.frame <- function(x)
+  do.call(cbind, lapply(x, is.nan))
+
+  dat[is.nan(dat)] <- NA
+  # Inf, -Inf's
+  dat$Spc_Qcms <- ifelse(dat$Spc_Qcms == "-Inf", paste(0), paste(dat$Spc_Qcms))
+  dat$Spc_Qcms <- ifelse(dat$Spc_Qcms == "Inf", paste(0), paste(dat$Spc_Qcms))
+  
+  # NA
+  dat$Spc_Qcms <- ifelse(dat$SpC == 0 | dat$Q_cms == 0, paste(0), paste(dat$Spc_Qcms))
+saveRDS(dat, "all_SC_Q_data_v2.rds")
