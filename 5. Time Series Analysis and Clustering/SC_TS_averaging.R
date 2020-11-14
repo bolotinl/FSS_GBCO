@@ -1,0 +1,233 @@
+## Bring in packages
+rm(list=ls())
+x <- c("tidyverse", "data.table", "lubridate", "zoo")
+lapply(x, require, character.only = TRUE)
+rm(x)
+
+## Set the theme for our ggplots
+theme_set(theme(legend.position = "none",panel.background = element_blank(), 
+                axis.line = element_line(colour = "black")))
+
+## Bring in all specific conductance data (not flow-normalized)
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+dat <- readRDS("all_SC_data.rds")
+
+## Format dataframe and add some important details
+sapply(dat, class)
+dat$Date <- as.POSIXct(as.character(dat$Date), format = "%Y-%m-%d")
+dat$Year <- year(dat$Date) 
+dat$Year <- as.factor(dat$Year)
+dat$doy <- strftime(dat$Date, format = "%j")
+dat$doy <- as.numeric(as.character(dat$doy))
+dat <- select(dat, -c("SiteDate"))
+dat <- mutate(dat, SiteYear = paste(SiteID, Year, sep = " "))
+
+## Create Representative Annual Time Series - MEAN ############################################################################################################
+## Make a copy of dat (since we will be using other approaches for this in addition to MEAN (i.e. Median, Upper Quartile, etc.))
+  ## NOTE: As the code stands, we are averaging across all available years before conducting any further site selection as opposed to subsetting sites by data availability and THEN averaging across years
+avg <- dat
+## Average across all values for each day of the year (doy) to get one representative time series BEFORE subsetting (as opposed to after, which reduced available data)
+avg <- avg %>%
+  group_by(SiteID, doy) %>%
+  summarise_at(.vars = "SpC", .funs = c("mean" = mean))
+
+## Check that this worked 
+# check <- subset(dat, dat$SiteID == "USGS-09014050" & dat$doy == 1)
+# check_avg <- mean(check$SpC)
+# rm(check, check_avg) # all good
+
+## See how many doy's of data each site has
+avg_count <- table(avg$SiteID) %>%
+  as.data.frame()
+
+## Subset by sites that have >= 60% of the 365 day year (219 days)
+avg_count <- filter(avg_count, Freq >= 219)
+
+## Subset the averaged data by this new site selection
+avg <- filter(avg, SiteID %in% avg_count$Var1)
+avg$SiteID <- factor(avg$SiteID)  # get rid of unused SiteIDs
+levels(avg$SiteID) # 263 sites when we increase the minimum required days  and average before subsetting, as opposed to 85 when we required >= 350 days and averaged across doy's AFTER subsetting
+
+## Take a look at the gaps to get an idea of how big they might be
+  # Create df where we will put the size of the largest gap for each SiteID
+  gap_summary <- levels(avg$SiteID) %>%
+  as.data.frame()
+  colnames(gap_summary) <- "SiteID"
+  gap_summary$max_gap <- NA
+
+  # Create temporary df for calculating gap size
+  doys <-  seq(1,365) %>%
+  as.data.frame()
+  colnames(doys) <- "doys"
+
+## Create function for calculating size of the largest gap for each SiteID
+quantify_gap <- function(num){
+  site <- gap_summary$SiteID[num]
+  ex_site <- filter(avg, SiteID == print(paste(site)))
+  check_gaps <- merge(doys, ex_site, by.x = "doys", by.y = "doy", all.x = TRUE)
+  check_gaps$logical <- check_gaps$mean
+  res <- rle(is.na(check_gaps$mean))
+  check_gaps$gaps <- rep(res$values*res$lengths,res$lengths)
+  max <- max(check_gaps$gaps)
+  gap_summary$max_gap[which(gap_summary$SiteID == gap_summary$SiteID[num])] <<- max
+}
+
+## Test on one site:
+# quantify_gap(8)
+
+## Create list and apply function to it:
+input_list <- seq(nrow(gap_summary))
+lapply(input_list, quantify_gap)
+
+## Further subset the data by the sites that have =< 3 day gaps
+gap_summary <- filter(gap_summary, max_gap <= 3)
+avg <- filter(avg, SiteID %in% gap_summary$SiteID)
+avg$SiteID <- factor(avg$SiteID)
+levels(avg$SiteID) # 152 sites
+
+## Plot example:
+ggplot(subset(dat, dat$SiteID == "USGS-09085150"))+
+  geom_line(mapping = aes(x = doy, y = SpC, color = Year))+ # Each colored line is a year of SC data
+  geom_line(subset(avg, avg$SiteID == "USGS-09085150"), mapping = aes(x = doy, y = mean), color = "black") # The black line is the "averaged" representative year of SC data
+
+## Format the 'avg' dataframe for input to the clustering code
+  # Look to this file for guidance:
+  # Example_avgTS_PSavoy <- readRDS("/Volumes/Blaszczak Lab/FSS/All Data/Example_avgTS_PSavoy.rds")
+  # sapply(Example_avgTS_PSavoy, class)
+
+sapply(avg, class)
+colnames(avg) <- c("SiteID", "doy", "mean_SpC")
+
+## Save the averaged data to a dataframe
+saveRDS(avg, "SC_avg.rds")
+
+## Create Representative Annual Time Series - UPPER QUANTILE ############################################################################################################
+## Create function for creating upper quantile dataframe similar to the 'avg' dataframe
+quant75 <- function(x){
+  x <- quantile(x, .75)
+}
+
+## Copy dat to up_quart
+up_quart <- dat
+## Across all SC values for a specific doy, take the 75th percentile 
+up_quart <- up_quart %>%
+  group_by(SiteID, doy) %>%
+  summarise_at(.vars = "SpC", .funs = c("upper_quart" = quant75))
+## We figured out which SiteID's of data we wanted when we created a representative time series using the MEAN, so use that df to filter this df for the appropriate SiteID's
+up_quart <- filter(up_quart, SiteID %in% avg$SiteID)
+
+## Check that this worked
+# check <- subset(dat, dat$SiteID == "USGS-09014050" & dat$doy == 1)
+# check_quant <- quantile(check$SpC, .75)
+# # all good, check one more time
+# 
+# check <- subset(dat, dat$SiteID == "USGS-09306500" & dat$doy == 121)
+# check_quant <- quantile(check$SpC, .75)
+# # all good
+
+## Plot example:
+ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
+  geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
+  geom_line(subset(up_quart, up_quart$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = upper_quart), color = "black")
+
+
+## Create Representative Annual Time Series - MEDIAN ############################################################################################################
+## Copy dat to med
+med <- dat
+## Across all SC values for a specific doy, take the median
+med <- med %>%
+  group_by(SiteID, doy) %>%
+  summarise_at(.vars = "SpC", .funs = c("median" = median))
+## Subset for data availability 
+med <- filter(med, SiteID %in% avg$SiteID)
+
+# check <- subset(dat, dat$SiteID == "USGS-09014050" & dat$doy == 1)
+# check_med <- median(check$SpC)
+# rm(check, check_med)
+
+## Plot example:
+ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
+  geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
+  geom_line(subset(med, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = median), color = "black")
+
+## Create Representative Annual Time Series - LOWER QUANTILE ############################################################################################################
+## Create function for creating lower quantile dataframe similar to the 'avg' dataframe
+quant25 <- function(x){
+  x <- quantile(x, .25)
+}
+
+low_quart <- dat
+low_quart <- low_quart %>%
+  group_by(SiteID, doy) %>%
+  summarise_at(.vars = "SpC", .funs = c("lower_quart" = quant25))
+## Subset for data availability
+low_quart <- filter(low_quart, SiteID %in% avg$SiteID)
+
+# check <- subset(dat, dat$SiteID == "USGS-09014050" & dat$doy == 1)
+# check_quant <- quantile(check$SpC, .25)
+# # all good, check one more time
+# 
+# check <- subset(dat, dat$SiteID == "USGS-09306500" & dat$doy == 121)
+# check_quant <- quantile(check$SpC, .25)
+# # all good
+
+## Plot example:
+ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
+  geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
+  geom_line(subset(low_quart, up_quart$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = lower_quart), color = "black")
+
+## Plot all data with all quantiles/mean overlain #################################################################################################################
+  # Just quantiles
+    ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
+  labs(y = "SpC")+
+  geom_line(subset(low_quart, up_quart$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = lower_quart), color = "black")+
+  geom_line(subset(med, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = median), color = "gray41")+
+  geom_line(subset(up_quart, up_quart$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = upper_quart), color = "grey66")
+
+  # All data + quantiles + mean
+  dat$Year <- as.numeric(as.character(dat$Year))
+  dat$Year <- as.factor(as.character(dat$Year))
+  p1 <- ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
+  geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
+  geom_line(subset(low_quart, up_quart$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = lower_quart), color = "black")+
+  geom_line(subset(med, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = median), color = "black")+
+  geom_line(subset(up_quart, up_quart$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = upper_quart), color = "black")+
+  geom_line(subset(avg, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = mean_SpC), color = "red")
+  print(p1)
+
+## Export any other data you want to use for clustering (since we only exported mean data above)
+saveRDS(low_quart, "SC_low_quart.rds")
+saveRDS(up_quart, "SC_up_quart.rds")
+saveRDS(med, "SC_med.rds")
+
+# Iterate through all sites to make the plot of all data + quantiles + mean #####################################################################################
+### Code for creating PDFs of plots in R: 
+  ## For one site:
+  # pdf("rplot.pdf") 
+  # # 2. Create a plot
+  # plot(x = my_data$wt, y = my_data$mpg,
+  #      pch = 16, frame = FALSE,
+  #      xlab = "wt", ylab = "mpg", col = "#2E9FDF")
+  # # Close the pdf file
+  # dev.off()
+
+setwd("/Volumes/Blaszczak Lab/FSS/Figures/SingleTSPlots")
+# x <- "USGS-09034500" # assign to x to test out the function below
+sites <- levels(dat$SiteID) 
+
+## Function for multiple sites (and all available data)
+  plotSpC <- function(x){
+    pdf(paste0(x, "_singleTS.pdf"))
+    p <- ggplot(subset(dat, dat$SiteID == x))+
+      theme(legend.position = "none", panel.background = element_blank(), axis.line = element_line(colour = "black"))+
+      geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
+      geom_line(subset(low_quart, up_quart$SiteID == x), mapping = aes(x = doy, y = lower_quart), color = "black")+
+      geom_line(subset(med, avg$SiteID == x), mapping = aes(x = doy, y = median), color = "black")+
+      geom_line(subset(up_quart, up_quart$SiteID == x), mapping = aes(x = doy, y = upper_quart), color = "black")+
+      geom_line(subset(avg, avg$SiteID == x), mapping = aes(x = doy, y = mean), color = "red")
+    print(p)
+    dev.off()
+  }
+
+  # plotSpC(x)
+  lapply(sites, plotSpC)
