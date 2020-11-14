@@ -10,6 +10,7 @@ theme_set(theme(legend.position = "none",panel.background = element_blank(),
 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("USGS_disch_dqi.rds")
+sites <- readRDS("TS_avg_site_selection.rds")
 
 ## Format dataframe and add important details
 dat$Date <- as.POSIXct(as.character(dat$Date), format = "%Y-%m-%d")
@@ -70,7 +71,8 @@ plotSpC <- function(x){
 # x <- "USGS-09014050"
 # plotSpC(x)
 # rm(x)
-
+sites$SiteID <- as.factor(sites$SiteID)
+sites <- levels(sites$SiteID) 
 ## Apply to all sites
 lapply(sites, plotSpC) # already ran and saved PDFs
 
@@ -83,6 +85,7 @@ p3 <- ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
   geom_line(subset(avg, avg$SiteID == "USGS-10133800"), mapping = aes(x = doy, y = mean), color = "red")
 print(p3)
 
+## Save data files
 saveRDS(low_quart, "Q_low_quart.rds")
 saveRDS(avg, "Q_avg.rds")
 saveRDS(up_quart, "Q_up_quart.rds")
