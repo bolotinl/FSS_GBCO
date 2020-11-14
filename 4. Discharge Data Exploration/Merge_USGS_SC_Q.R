@@ -28,43 +28,54 @@ colnames(dat) <- c("SiteID", "Date", "SiteDate", "SpC", "Source_SpC", "Q_cfs", "
 dat$Spc_Qcms <- dat$SpC / dat$Q_cms
 dat$SiteID <- factor(dat$SiteID)
 
+## If SpC = 0 AND Q = 0, make SpC_Qcms = 0
+dat$Spc_Qcms <- ifelse(dat$SpC == 0 & dat$Q_cms == 0, paste(0), paste(dat$Spc_Qcms))
+
+## SpC != 0 BUT Q = 0, make SpC_Qcms = NA
+dat$Spc_Qcms <- ifelse(dat$SpC != 0 & dat$Q_cms == 0, NA, paste(dat$Spc_Qcms))
+
+
 table(dat$SiteID)
 
 ggplot(subset(dat, dat$SiteID == "USGS-09041400"))+
   geom_line(mapping = aes(Date, Spc_Qcms))
 
 getwd()
+
+
 saveRDS(dat, "all_SC_Q_data.rds")
 
-dat_complete <- dat[complete.cases(dat),]
-dat_complete$SiteYear <- paste0(dat_complete$SiteID, " ", year(dat_complete$Date))
+# # Get rid of Inf, NA, and NaN's before using this data any more
+# dat <- readRDS("all_SC_Q_data.rds")
+# # NaN's
+# is.nan.data.frame <- function(x)
+#   do.call(cbind, lapply(x, is.nan))
+# 
+# dat[is.nan(dat)] <- NA
+# # Inf, -Inf's
+# dat$Spc_Qcms <- ifelse(dat$Spc_Qcms == "-Inf", paste(0), paste(dat$Spc_Qcms))
+# dat$Spc_Qcms <- ifelse(dat$Spc_Qcms == "Inf", paste(0), paste(dat$Spc_Qcms))
+# 
+# # NA
+# dat$Spc_Qcms <- ifelse(dat$SpC == 0 | dat$Q_cms == 0, paste(0), paste(dat$Spc_Qcms))
+# saveRDS(dat, "all_SC_Q_data_v2.rds")
+# 
+# dat_complete <- dat[complete.cases(dat),]
+# dat_complete$SiteYear <- paste0(dat_complete$SiteID, " ", year(dat_complete$Date))
+# 
+# sy_count <- table(dat_complete$SiteYear) %>%
+#   as.data.frame()
+# 
+# sy_count <- sy_count %>%
+#   filter(Freq >= 340)
+# 
+# sub_for_cont <- dat_complete %>%
+#   filter(SiteYear %in% sy_count$Var1)
+# 
+# saveRDS(sub_for_cont, "continuous_SC_Q_data.rds")
+# sub_for_cont$SiteID <- factor(sub_for_cont$SiteID)
+# levels(sub_for_cont$SiteID) #85
+# 
+# rm(list=ls())
 
-sy_count <- table(dat_complete$SiteYear) %>%
-  as.data.frame()
 
-sy_count <- sy_count %>%
-  filter(Freq >= 340)
-
-sub_for_cont <- dat_complete %>%
-  filter(SiteYear %in% sy_count$Var1)
-
-saveRDS(sub_for_cont, "continuous_SC_Q_data.rds")
-sub_for_cont$SiteID <- factor(sub_for_cont$SiteID)
-levels(sub_for_cont$SiteID) #85
-
-rm(list=ls())
-
-# Get rid of Inf, NA, and NaN's before using this data any more
-dat <- readRDS("all_SC_Q_data.rds")
-  # NaN's
-  is.nan.data.frame <- function(x)
-  do.call(cbind, lapply(x, is.nan))
-
-  dat[is.nan(dat)] <- NA
-  # Inf, -Inf's
-  dat$Spc_Qcms <- ifelse(dat$Spc_Qcms == "-Inf", paste(0), paste(dat$Spc_Qcms))
-  dat$Spc_Qcms <- ifelse(dat$Spc_Qcms == "Inf", paste(0), paste(dat$Spc_Qcms))
-  
-  # NA
-  dat$Spc_Qcms <- ifelse(dat$SpC == 0 | dat$Q_cms == 0, paste(0), paste(dat$Spc_Qcms))
-saveRDS(dat, "all_SC_Q_data_v2.rds")

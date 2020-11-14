@@ -214,6 +214,7 @@ p1 <- ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
 saveRDS(low_quart, "SC_low_quart.rds")
 saveRDS(up_quart, "SC_up_quart.rds")
 saveRDS(med, "SC_med.rds")
+
 # Iterate through all sites to make the plot of all data + quantiles + mean
 ### Code for creating PDFs of plots in R: 
 ## For one site:
@@ -354,23 +355,6 @@ colnames(avg) <- c("SiteID", "doy", "mean_SpC")
 ## Save the averaged data to a dataframe
 #saveRDS(avg, "SC_avg.rds")
 saveRDS(avg, "SC_Q_avg.rds")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
