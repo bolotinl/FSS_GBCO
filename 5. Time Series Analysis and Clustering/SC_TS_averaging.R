@@ -83,7 +83,11 @@ lapply(input_list, quantify_gap)
 gap_summary <- filter(gap_summary, max_gap <= 3)
 avg <- filter(avg, SiteID %in% gap_summary$SiteID)
 avg$SiteID <- factor(avg$SiteID)
-levels(avg$SiteID) # 152 sites
+site_selection <- levels(avg$SiteID) %>%
+  as.data.frame()# 152 sites
+colnames(site_selection) <- "SiteID"
+# Save site list after doing site selection 
+saveRDS(site_selection, "TS_avg_site_selection.rds")
 
 ## Plot example:
 ggplot(subset(dat, dat$SiteID == "USGS-09085150"))+
