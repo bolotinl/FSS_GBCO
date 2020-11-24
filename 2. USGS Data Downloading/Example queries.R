@@ -2,6 +2,11 @@
 #Script for filtering data queries
 #Created 5/15/2020
 #===============================================================================
+detach("package:here", unload = TRUE) 
+    # If package:here has already been called in an R session,
+    # 1) detach it using this line
+    # 2) set your working directory to the correct location
+    # 3) re-call the package from your library
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 library("here") # WORKING DIRECTORY MUST BE CORRECT BEFORE CALLING THIS PACKAGE AND USING IT
 library("rgdal") #For CRS
@@ -9,7 +14,6 @@ library("data.table")
 library("dplyr") #For filtering
 
 #Source functions for finding overlap
-#source(here("R", "functions", "concurrent_overlap.R"))
 source(here("concurrent_overlap.R"))
 
 #Read in the data queries
@@ -25,32 +29,31 @@ source(here("concurrent_overlap.R"))
     filter(!is.na(Lat)) %>%
     distinct(Site_ID, Lat, Lon) # Flowing waters with SC
     
+ 
+    SC_lotic_sensor <- SC_query %>%
+      filter(Site_ID %in% SC_lotic_sensor$Site_ID)
     class(SC_lotic_sensor$Site_ID)
     SC_lotic_sensor$Site_ID <- factor(SC_lotic_sensor$Site_ID)
     levels(SC_lotic_sensor$Site_ID) # 2811
- 
-  disch_lotic_sensor <- disch_query %>%
+  
+disch_lotic_sensor <- disch_query %>%
    filter(site_tp_cd %in% c("ST", "ST-CA", "ST-DCH", "ST-TS", "SP")) %>%
    filter(data_type_cd == "dv" | data_type_cd == "uv") %>%
    filter(!is.na(Lat)) %>%
    distinct(Site_ID, Lat, Lon) # Flowing waters with Q
   
-   class(disch_lotic_sensor$Site_ID)
+  disch_lotic_sensor <- disch_query %>%
+    filter(Site_ID %in% disch_lotic_sensor$Site_ID)
+  class(disch_lotic_sensor$Site_ID)
    disch_lotic_sensor$Site_ID <- factor(disch_lotic_sensor$Site_ID)
    levels(disch_lotic_sensor$Site_ID) # 23425
   
   
   
   # Write 2 csv's: 1 for all lotic sites with SC and 1 for all lotic sites with Q, this is all data we want
-  SC_lotic_sensor <- subset(SC_query, SC_query$Site_ID %in% SC_lotic_sensor$Site_ID)
-  disch_lotic_sensor <- subset(disch_query, disch_query$Site_ID %in% disch_lotic_sensor$Site_ID)
-  
   write.csv(SC_lotic_sensor, "USGS_all_SC_lotic_sensor.csv") # as opposed to SC_only which is sites that have SC and not disch
   write.csv(disch_lotic_sensor,"USGS_all_disch_lotic_sensor.csv") # as opposed to disch_only which is sites that have disch and not SC
   
-  
-# Concurrent overlap doesn't necessarily matter for us since we are doing streamgage matching 
-
 #-------------------------------------------------
 #Filter for all lotic NWIS sites with specific conductivity and discharge sensors (subdaily or daily)  
 #-------------------------------------------------
@@ -67,12 +70,12 @@ source(here("concurrent_overlap.R"))
       min_obs = 1
     )  # there are 2002 sites with flowing water in the COUNTRY with SC and Discharge sensors
 
-    # As it is, the output dataframe is just the SiteID and the Lat Long. Let's include huc_cd.
+    # As it is, the output dataframe is just the SiteID and the Lat Long. Let's include other columns.
     disch_SC_sensor <- disch_query[which(disch_query$Site_ID %in% disch_SC_sensor$Site_ID),]
-    names(disch_SC_sensor)
-    disch_SC_sensor <- select(disch_SC_sensor, c("Site_ID", "station_nm", "Lat", "Lon", "huc_cd"))
-    disch_SC_sensor <- unique(disch_SC_sensor)
-write.csv(disch_SC_sensor, "USGS_all_disch_SC_lotic_sensor.csv") # Flowing waters with Q and SC
+    class(disch_SC_sensor$Site_ID)
+    disch_SC_sensor$Site_ID <- factor(disch_SC_sensor$Site_ID)
+    levels(disch_SC_sensor$Site_ID)
+    write.csv(disch_SC_sensor, "USGS_all_disch_SC_lotic_sensor.csv") # Flowing waters with Q and SC
 
 # #See what sites have SC that do not have discharge
 # SC_only <- setdiff(SC_lotic_sensor, disch_SC_sensor) # 811 sites
