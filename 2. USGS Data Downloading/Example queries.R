@@ -1,6 +1,5 @@
 #===============================================================================
 #Script for filtering data queries
-#Created 5/15/2020
 #===============================================================================
 detach("package:here", unload = TRUE) 
     # If package:here has already been called in an R session,
@@ -17,8 +16,8 @@ library("dplyr") #For filtering
 source(here("concurrent_overlap.R"))
 
 #Read in the data queries
- disch_query <- readRDS(here("disch_query.rds"))
- SC_query <- readRDS(here("SC_query.rds"))
+ disch_query <- readRDS(here("disch_query.rds")) # All discharge sites
+ SC_query <- readRDS(here("SC_query.rds")) # All SC sites
 
 #-------------------------------------------------
 #Filter for all lotic NWIS sites with specific conductivity sensors (subdaily or daily)  
@@ -45,8 +44,8 @@ disch_lotic_sensor <- disch_query %>%
   disch_lotic_sensor <- disch_query %>%
     filter(Site_ID %in% disch_lotic_sensor$Site_ID)
   class(disch_lotic_sensor$Site_ID)
-   disch_lotic_sensor$Site_ID <- factor(disch_lotic_sensor$Site_ID)
-   levels(disch_lotic_sensor$Site_ID) # 23425
+  disch_lotic_sensor$Site_ID <- factor(disch_lotic_sensor$Site_ID)
+  levels(disch_lotic_sensor$Site_ID) # 23425
   
   
   
@@ -63,19 +62,21 @@ disch_lotic_sensor <- disch_query %>%
     SC_query2$parm_cd <- "00000"
 
   #Find concurrent overlap of data
-    disch_SC_sensor <- overlap_fun(
+    both_sensor <- overlap_fun(
       param_queries = list(disch_query, SC_query2),
       site_types = c("ST", "ST-CA", "ST-DCH", "ST-TS", "SP"),
       data_types = c("uv", "dv"),
       min_obs = 1
     )  # there are 2002 sites with flowing water in the COUNTRY with SC and Discharge sensors
 
-    # As it is, the output dataframe is just the SiteID and the Lat Long. Let's include other columns.
-    disch_SC_sensor <- disch_query[which(disch_query$Site_ID %in% disch_SC_sensor$Site_ID),]
-    class(disch_SC_sensor$Site_ID)
-    disch_SC_sensor$Site_ID <- factor(disch_SC_sensor$Site_ID)
-    levels(disch_SC_sensor$Site_ID)
-    write.csv(disch_SC_sensor, "USGS_all_disch_SC_lotic_sensor.csv") # Flowing waters with Q and SC
+    # As it is, the output dataframe for both_sensor is just the SiteID and the Lat Long. Let's include other columns.
+    SC_both <- subset(SC_lotic_sensor, SC_lotic_sensor$Site_ID %in% both_sensor$Site_ID)
+    disch_both <- subset(disch_lotic_sensor, disch_lotic_sensor$Site_ID %in% both_sensor$Site_ID)
+    both_sensor <- rbind(SC_both, disch_both)
+    class(both_sensor$Site_ID)
+    both_sensor$Site_ID <- factor(both_sensor$Site_ID)
+    levels(both_sensor$Site_ID) # 2002 still, so we're good and we've added important metadata
+    write.csv(both_sensor, "USGS_all_disch_SC_lotic_sensor.csv") # Flowing waters with Q and SC
 
 # #See what sites have SC that do not have discharge
 # SC_only <- setdiff(SC_lotic_sensor, disch_SC_sensor) # 811 sites
