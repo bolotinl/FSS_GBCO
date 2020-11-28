@@ -1,102 +1,132 @@
-#downloading flow and spc data using dataretrieval package
-#6/1/20
+########### Lauren Bolotin - bolotinljb@gmail.com ############################################################
+# Adapted from a script by Dr. Phil Savoy
+# Download flow and SC data using the dataRetrieval package
+##############################################################################################################
 
 library(dataRetrieval)
 library(tidyverse)
 library(data.table)
-setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-disch_huc_sites <- readRDS("USGS_disch_sites.rds") # all lotic disch sites in the GBCO
-SC_huc_sites <- readRDS("USGS_SC_sites.rds") # all lotic SC sites in the GBCO
+library(beepr)
 
-#parameter codes: 00060-discharge 00095-specific conductance
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+disch_huc_sites <- readRDS("USGS_disch_sites.rds") # all lotic disch sites in the western US
+SC_huc_sites <- readRDS("USGS_SC_sites.rds") # all lotic SC sites in the western US
+both_huc_sites <- readRDS("USGS_disch_SC_sites.rds") # all lotic sites with both disch and SC in the western US
+
+setdiff(SC_huc_sites$Site_ID, disch_huc_sites$Site_ID) # 252 sites with SC and not Q. Ignore these for now. 
+levels(both_huc_sites$Site_ID) # 828 sites with both SC and Q
+# For now, for the entire Western US, lets ONLY use sites with BOTH discharge and SC
+
+#parameter codes: 00060 -discharge ---- 00095 & 0094 -specific conductance
 #pull data using dataretrieval package
 
 #------------------------------
 # Download daily value (dv) discharge data ####
 #------------------------------
-disch_huc_sites$Site_ID <- as.numeric(as.character(disch_huc_sites$Site_ID))
-disch_huc_sites$Site_ID <- ifelse(disch_huc_sites$Site_ID < 1e7,
-                                  yes = paste("0", disch_huc_sites$Site_ID, sep=""),
-                                  no = paste(disch_huc_sites$Site_ID))
-# disch_huc_sites$Site_ID <- as.character(disch_huc_sites$Site_ID)
-siteNumber <- disch_huc_sites %>% pull(Site_ID) # 3900
+both_huc_sites$Site_ID <- as.numeric(as.character(both_huc_sites$Site_ID))
+both_huc_sites$Site_ID <- ifelse(both_huc_sites$Site_ID < 1e7,
+                                  yes = paste("0", both_huc_sites$Site_ID, sep=""),
+                                  no = paste(both_huc_sites$Site_ID))
+# both_huc_sites$Site_ID <- as.character(both_huc_sites$Site_ID)
+siteNumber <- both_huc_sites %>% pull(Site_ID) 
+siteNumber <- unique(siteNumber) # 828
 
 parameterCd <- "00060"
 startDate <- ""  
 endDate <- "" 
 # if statCd is not specified, it defaults to 00003 (mean) this is ok
 # I downloaded the data in chunks
-discharge <- readNWISdv(siteNumber[1:1000], 
+discharge <- readNWISdv(siteNumber[1:125], 
                         parameterCd, startDate, endDate)
-discharge2 <- readNWISdv(siteNumber[1001:2000], 
+discharge1 <- readNWISdv(siteNumber[126:250], 
                         parameterCd, startDate, endDate)
-discharge3 <- readNWISdv(siteNumber[2001:3000], 
-                         parameterCd, startDate, endDate)
-discharge4 <- readNWISdv(siteNumber[3001:3600], 
-                         parameterCd, startDate, endDate)
-siteNumber <- siteNumber[-c(3739)] # had to get rid of SiteID 414500112000000. Would not download, said the SiteID was not an acceptable format.
-discharge5 <- readNWISdv(siteNumber[3601:3800],
-                         parameterCd,startDate, endDate)
-discharge6 <- readNWISdv(siteNumber[3801:3899], parameterCd, startDate, endDate)
-discharge7 <- readNWISdv(siteNumbers = "414500112000000", parameterCd, startDate, endDate)
+discharge2 <- readNWISdv(siteNumber[251:375], 
+                        parameterCd, startDate, endDate)
+discharge3 <- readNWISdv(siteNumber[375:500], 
+                        parameterCd, startDate, endDate)
+rm(discharge, discharge1, discharge2, discharge3)
 
-# Downloaded by Joanna: 
-saveRDS(discharge, "USGS_disch_data.rds")
-saveRDS(discharge2, "USGS_disch_data2.rds")
-saveRDS(discharge3, "USGS_disch_data3.rds")
-saveRDS(discharge4, "USGS_disch_data4.rds")
-# Downloaded by Lauren
-#setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-saveRDS(discharge5, "USGS_disch_data5.rds")
-saveRDS(discharge6, "USGS_disch_data6.rds")
-saveRDS(discharge7, "USGS_disch_data7.rds")
+discharge4 <- readNWISdv(siteNumber[501:625], 
+                         parameterCd, startDate, endDate)
+discharge5 <- readNWISdv(siteNumber[626:750], 
+                         parameterCd, startDate, endDate)
+discharge6 <- readNWISdv(siteNumber[751:828], 
+                         parameterCd, startDate, endDate)
+rm(discharge4, discharge5, discharge6)
+
+beep() # Notifies us when the download is done with a sound
+
+# Save to file ## Need to redownload GBCO to original filenames. Delete this comment once this has been done. 
+saveRDS(discharge, "WUS_USGS_disch_data.rds")
+saveRDS(discharge1, "WUS_USGS_disch1_data.rds")
+saveRDS(discharge2, "WUS_USGS_disch2_data.rds")
+saveRDS(discharge3, "WUS_USGS_disch3_data.rds")
+saveRDS(discharge4, "WUS_USGS_disch4_data.rds")
+saveRDS(discharge5, "WUS_USGS_disch5_data.rds")
+saveRDS(discharge6, "WUS_USGS_disch6_data.rds")
 
 #------------------------------
 # Download water quality (qw) SC data (point measurements) ####
 #------------------------------
+# Will need to do for 00095 and then 00094
 parameterCd <- c("00095")
-# It just so happens that none of the gages in GBCO have the 00094 parameter for SC, so we don't need to download this parameter
-SC_huc_sites$Site_ID <- ifelse(SC_huc_sites$Site_ID < 1e7,
-                               yes = paste("0", SC_huc_sites$Site_ID, sep=""),
-                               no = SC_huc_sites$Site_ID)
+# both_huc_sites$Site_ID <- ifelse(both_huc_sites$Site_ID < 1e7,
+#                                yes = paste("0", both_huc_sites$Site_ID, sep=""),
+#                                no = both_huc_sites$Site_ID)
 
-siteNumber <- SC_huc_sites$Site_ID[which(SC_huc_sites$data_type_cd == "qw")]
+siteNumber <- both_huc_sites$Site_ID[which(both_huc_sites$data_type_cd == "qw")]
+siteNumber <- unique(siteNumber)
 # there are 53 sites with qw SC data
-SCqw <- readNWISqw(siteNumber, parameterCd, 
+SCqw <- readNWISqw(siteNumber[1:205], parameterCd, 
                    startDate, endDate)
-
-saveRDS(SCqw, "USGS_SC_qw_data.rds")
-
+SCqw1 <- readNWISqw(siteNumber[206:413], parameterCd, 
+                   startDate, endDate)
+# saveRDS(SCqw, "USGS_SC_qw_data.rds") # For GBCO data
+saveRDS(SCqw, "WUS_USGS_SC_qw_data.rds") # For WUS data
+saveRDS(SCqw1, "WUS_USGS_SC_qw1_data.rds") # For WUS data
+rm(SCqw, SCqw1)
 #------------------------------
 # Download daily value (dv) SC data ####
 #------------------------------
-siteNumber <- SC_huc_sites$Site_ID[which(SC_huc_sites$data_type_cd == "dv")]
-# there are 386 sites with dv SC data
-SCdv <- readNWISdv(siteNumber, parameterCd, 
+siteNumber <- both_huc_sites$Site_ID[which(both_huc_sites$data_type_cd == "dv")]
+siteNumber <- unique(siteNumber)
+SCdv <- readNWISdv(siteNumber[1:125], parameterCd, 
                    startDate, endDate)
-saveRDS(SCdv, "USGS_SC_dv_data.rds")
+SCdv1 <- readNWISdv(siteNumber[126:350], parameterCd, 
+                    startDate, endDate)
+SCdv2 <- readNWISdv(siteNumber[351:700], parameterCd, 
+                    startDate, endDate)
+SCdv3 <- readNWISdv(siteNumber[701:793], parameterCd, 
+                    startDate, endDate)
+beep(10)
+# saveRDS(SCdv, "USGS_SC_dv_data.rds") # For GBCO data
 
+saveRDS(SCdv, "WUS_USGS_SC_dv_data.rds") # For WUS 00095 data
+saveRDS(SCdv1, "WUS_USGS_SC_dv1_data.rds")
+saveRDS(SCdv2, "WUS_USGS_SC_dv2_data.rds")
+saveRDS(SCdv3, "WUS_USGS_SC_dv3_data.rds")
+
+rm(SCdv, SCdv1, SCdv2, SCdv3)
 #------------------------------
 # Download unit value (uv) SC data ####
 #------------------------------
-siteNumber <- SC_huc_sites$Site_ID[which(SC_huc_sites$data_type_cd == "uv")]
-class(siteNumber)
-# there are 73 sites with uv SC data
-# I downloaded this data in chunks
-SCuv1 <- readNWISuv(siteNumber[1:5], parameterCd, 
+siteNumber <- both_huc_sites$Site_ID[which(SC_huc_sites$data_type_cd == "uv")]
+siteNumber <- unique(siteNumber)
+SCuv1 <- readNWISuv(siteNumber[1:75], parameterCd, 
                    startDate, endDate) 
-SCuv2 <- readNWISuv(siteNumber[6:26], parameterCd, 
+SCuv2 <- readNWISuv(siteNumber[76:125], parameterCd, 
                     startDate, endDate)
-SCuv3 <- readNWISuv(siteNumber[27:50], parameterCd, 
+SCuv3 <- readNWISuv(siteNumber[126:200], parameterCd, 
                     startDate, endDate)
-SCuv4 <- readNWISuv(siteNumber[51:73], parameterCd, 
+SCuv4 <- readNWISuv(siteNumber[201:248], parameterCd, 
                     startDate, endDate)
-
+beep()
 #setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-saveRDS(SCuv1, "USGS_SC_uv1_data.rds")
-saveRDS(SCuv2, "USGS_SC_uv2_data.rds")
-saveRDS(SCuv3, "USGS_SC_uv3_data.rds")
-saveRDS(SCuv4, "USGS_SC_uv4_data.rds")
+# saveRDS(SCuv1, "USGS_SC_uv1_data.rds")
+# saveRDS(SCuv2, "USGS_SC_uv2_data.rds")
+# saveRDS(SCuv3, "USGS_SC_uv3_data.rds")
+# saveRDS(SCuv4, "USGS_SC_uv4_data.rds")
+
 
 #----------------------------
 # Combine data files that were downloaded in chunks #####
