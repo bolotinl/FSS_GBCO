@@ -1,13 +1,36 @@
-# USGS Q Data EDA
-# Bring in all USGS discharge data for HUC 14, 15, & 16
+# USGS Q Data Exploration
+# Bring in all USGS discharge data
 # Discharge data is daily average discharge
-
 x <- c("tidyverse", "lubridate")
 lapply(x, require, character.only = TRUE)
 rm(x)
 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 
+# Bring in SC data (which, for now, is just daily value data): 
+SC <- readRDS("WUS_USGS_SC_dv_dqi.rds")
+colnames(SC)
+# Bring in Q data (which, for now, is just daily value data):
+Q <- readRDS("WUS_all_USGS_disch_dv_data.rds")
+# Format df
+colnames(Q)
+Q$agency_cd <- as.factor(Q$agency_cd)
+levels(Q$agency_cd)
+Q <- select(Q, -c("agency_cd"))
+colnames(Q) <- c("SiteID", "Date", "Q", "dqi")
+# Prepare to filter Q sites by SC sites
+Q$SiteDate <- paste(Q$SiteID, Q$Date, sep = " ")
+SC$SiteDate <- paste(SC$SiteID, SC$Date, sep = " ")
+Q$SiteDate <- as.factor(as.character(Q$SiteDate))
+SC$SiteDate <- as.factor(as.character(SC$SiteDate))
+Qsub <- filter(Q, SiteDate %in% SC$SiteDate)
+# Add a column for Q in cms
+colnames(Qsub)[3] <- "Q_cfs" 
+Qsub$Q_cms <- Qsub$Q_cfs * 0.028316846592
+# Save data file:
+saveRDS(Qsub, "WUS_USGS_disch_sub_sites_by_SC_dqi.rds")
+
+# For GBCO data:
 # Bring in and use SC data to filter Q data for our sites of interest (and reduce the size of the dataframe so it doesn't slow down processing)
 SC <- readRDS("all_SC_data.rds") 
 head(SC)
@@ -23,8 +46,6 @@ Q$SiteDate <- paste0(Q$SiteID, " ", Q$Date)
 
 #Q <- select(Q, c("site_no", "Date", 4, 5))
 #colnames(Q) <- c("SiteID", 'Date',"Q", "dqi")
-
-
 
 # Q$Date <- ymd(Q$Date)
 # Q$Year <- year(Q$Date)
