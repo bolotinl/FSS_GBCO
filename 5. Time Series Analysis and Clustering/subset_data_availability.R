@@ -4,7 +4,7 @@
 #################################################################################
 # Bring in packages
 rm(list=ls())
-x <- c("tidyverse", "data.table", "lubridate", "zoo", "maps")
+x <- c("tidyverse", "data.table", "lubridate", "zoo", "maps", "beepr")
 lapply(x, require, character.only = TRUE)
 rm(x)
 
@@ -12,10 +12,14 @@ rm(x)
 theme_set(theme(legend.position = "none", panel.background = element_blank(), 
                 axis.line = element_line(colour = "black")))
 
-# Bring/format in data
+## Bring in data:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # Flow corrected:
 dat <- readRDS("WUS_all_USGS_SC_Q_data.rds")
+dat$SiteID <- factor(dat$SiteID)
+levels(dat$SiteID) # 645
+
+## Format data:
 dat$Date <- ymd(dat$Date)
 # create year column
 dat$Year <- year(dat$Date) 
@@ -65,16 +69,20 @@ quantify_gap <- function(num){
 # Create list and apply function to it: 
 input_list <- seq(nrow(gap_summary))
 lapply(input_list, quantify_gap)
-
+beep()
 # Get rid of things we no longer need
 rm(doys, dat_count, input_list, quantify_gap)
 
 # Subset by gap size ##################################################################
-gap_summary <- filter(gap_summary, max_gap <= 3)
+gap_summary <- filter(gap_summary, max_gap <= 4)
 sub <- filter(sub, SiteYear %in% gap_summary$SiteYear)
+saveRDS(sub, "WUS_USGS_SC_Q_availability_subset.rds")
 rm(gap_summary)
+class(sub$SiteID)
+sub$SiteID <- factor(sub$SiteID)
+levels(sub$SiteID) # 244
 # NOTE: at this point, sub is a df with data only from site-years that had 219/365 days
-# and gaps of three days or smaller
+# and gaps of four days or smaller
 
 # Plot data availability
 dat_availability <- select(sub, c("SiteID", "Year"))
@@ -83,6 +91,14 @@ p <- ggplot(dat_availability)+
   geom_histogram(mapping = aes(x = as.numeric(as.character(Year)), fill = SiteID), binwidth = 1, color = "white")+
   labs(x = "Year", y = "n(Sites)", title = "Data Availability")
 print(p)
+
+p <- ggplot(sub)+
+  geom_tile(mapping = aes(x = Year, y = SiteID))
+print(p)
+
+
+
+
 
 # Put data availability into a table
 dat_availability_table <- plyr::count(dat_availability, vars = "Year")
@@ -113,25 +129,25 @@ sub171819 <- intersect(sub1718, sub1819)
 sub3 <- subset(sub2, sub2$SiteID %in% sub171819)
 sub3$SiteID <- factor(sub3$SiteID)
 levels(sub3$SiteID)
-#NOTE: only 9 sites have all three years
+#NOTE: only 8 sites have all three years
 rm(sub2017, sub2018, sub2019, sub1718, sub1819, sub171819, dat_availability, dat_availability_table)
 
 # Map sites to see spatial distribution ###############################################
 # Read in location data for USGS sites
-meta <- readRDS("GBCO_SC_sites.rds")
+meta <- readRDS("WUS_USGS_disch_SC_sites.rds")
 # Subset for important info
 names(meta)
 meta <- select(meta, c("Site_ID", "Lat", "Lon"))
 # Format columns
-meta <- subset(meta, meta$Site_ID)
+meta$Site_ID <- as.numeric(as.character(meta$Site_ID))
 meta$Site_ID <- ifelse(meta$Site_ID < 10000000, paste0("0", meta$Site_ID), paste0(meta$Site_ID))
 meta$Site_ID <- paste0("USGS-", meta$Site_ID)
 colnames(meta)[1] <- "SiteID"
 # Subset for sites of interest
-meta <- subset(meta, meta$SiteID %in% sub3$SiteID)
+meta <- subset(meta, meta$SiteID %in% sub$SiteID)
 meta <- unique(meta)
 # Plot
-some.states <- c('california', 'nevada', 'utah', 'arizona', 'colorado', 'new mexico')
+some.states <- c('california', 'nevada', 'utah', 'arizona', 'colorado', 'new mexico', 'texas', 'oregon', 'washington', 'montana', 'idaho', 'north dakota', 'south dakota', 'wyoming', 'kansas', 'nebraska', 'oklahoma', 'missouri', 'arkansas', 'iowa', 'minnesota', 'louisiana')
 some.states.map <- map_data("state", region = some.states)
 ggplot(some.states.map)+
   geom_polygon(mapping = aes(x = long, y = lat, group = group), fill = "grey", color = "white")+
