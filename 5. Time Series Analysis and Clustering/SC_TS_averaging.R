@@ -10,8 +10,8 @@ theme_set(theme(legend.position = "none",panel.background = element_blank(),
 
 ## Bring in all specific conductance data (not flow-normalized)
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-dat <- readRDS("all_SC_data.rds")
-
+# dat <- readRDS("all_SC_data.rds")
+dat <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
 ## Format dataframe and add some important details
 sapply(dat, class)
 dat$Date <- as.POSIXct(as.character(dat$Date), format = "%Y-%m-%d")
@@ -37,74 +37,76 @@ avg <- avg %>%
 # rm(check, check_avg) # all good
 
 ## See how many doy's of data each site has
-avg_count <- table(avg$SiteID) %>%
-  as.data.frame()
+# avg_count <- table(avg$SiteID) %>%
+#   as.data.frame()
+
+## Already did this in subset_data_availability.R :
 
 ## Subset by sites that have >= 60% of the 365 day year (219 days)
-avg_count <- filter(avg_count, Freq >= 219)
+# avg_count <- filter(avg_count, Freq >= 219)
+# 
+# ## Subset the averaged data by this new site selection
+# avg <- filter(avg, SiteID %in% avg_count$Var1)
+# avg$SiteID <- factor(avg$SiteID)  # get rid of unused SiteIDs
+# levels(avg$SiteID) # 263 sites when we increase the minimum required days  and average before subsetting, as opposed to 85 when we required >= 350 days and averaged across doy's AFTER subsetting
 
-## Subset the averaged data by this new site selection
-avg <- filter(avg, SiteID %in% avg_count$Var1)
-avg$SiteID <- factor(avg$SiteID)  # get rid of unused SiteIDs
-levels(avg$SiteID) # 263 sites when we increase the minimum required days  and average before subsetting, as opposed to 85 when we required >= 350 days and averaged across doy's AFTER subsetting
-
-## Take a look at the gaps to get an idea of how big they might be
-  # Create df where we will put the size of the largest gap for each SiteID
-  gap_summary <- levels(avg$SiteID) %>%
-  as.data.frame()
-  colnames(gap_summary) <- "SiteID"
-  gap_summary$max_gap <- NA
-
-  # Create temporary df for calculating gap size
-  doys <-  seq(1,365) %>%
-  as.data.frame()
-  colnames(doys) <- "doys"
-
-## Create function for calculating size of the largest gap for each SiteID
-quantify_gap <- function(num){
-  site <- gap_summary$SiteID[num]
-  ex_site <- filter(avg, SiteID == print(paste(site)))
-  check_gaps <- merge(doys, ex_site, by.x = "doys", by.y = "doy", all.x = TRUE)
-  check_gaps$logical <- check_gaps$mean
-  res <- rle(is.na(check_gaps$mean))
-  check_gaps$gaps <- rep(res$values*res$lengths,res$lengths)
-  max <- max(check_gaps$gaps)
-  gap_summary$max_gap[which(gap_summary$SiteID == gap_summary$SiteID[num])] <<- max
-}
-
-## Test on one site:
-# quantify_gap(8)
-
-## Create list and apply function to it:
-input_list <- seq(nrow(gap_summary))
-lapply(input_list, quantify_gap)
-
-## Further subset the data by the sites that have =< 3 day gaps
-gap_summary <- filter(gap_summary, max_gap <= 3)
-avg <- filter(avg, SiteID %in% gap_summary$SiteID)
-avg$SiteID <- factor(avg$SiteID)
-site_selection <- levels(avg$SiteID) %>%
-  as.data.frame()# 152 sites
-colnames(site_selection) <- "SiteID"
-# Save site list after doing site selection 
-saveRDS(site_selection, "TS_avg_site_selection.rds")
-
-## Plot example:
-ggplot(subset(dat, dat$SiteID == "USGS-09085150"))+
-  geom_line(mapping = aes(x = doy, y = SpC, color = Year))+ # Each colored line is a year of SC data
-  geom_line(subset(avg, avg$SiteID == "USGS-09085150"), mapping = aes(x = doy, y = mean), color = "black") # The black line is the "averaged" representative year of SC data
-
-## Format the 'avg' dataframe for input to the clustering code
-  # Look to this file for guidance:
-  # Example_avgTS_PSavoy <- readRDS("/Volumes/Blaszczak Lab/FSS/All Data/Example_avgTS_PSavoy.rds")
-  # sapply(Example_avgTS_PSavoy, class)
+# ## Take a look at the gaps to get an idea of how big they might be
+#   # Create df where we will put the size of the largest gap for each SiteID
+#   gap_summary <- levels(avg$SiteID) %>%
+#   as.data.frame()
+#   colnames(gap_summary) <- "SiteID"
+#   gap_summary$max_gap <- NA
+# 
+#   # Create temporary df for calculating gap size
+#   doys <-  seq(1,365) %>%
+#   as.data.frame()
+#   colnames(doys) <- "doys"
+# 
+# ## Create function for calculating size of the largest gap for each SiteID
+# quantify_gap <- function(num){
+#   site <- gap_summary$SiteID[num]
+#   ex_site <- filter(avg, SiteID == print(paste(site)))
+#   check_gaps <- merge(doys, ex_site, by.x = "doys", by.y = "doy", all.x = TRUE)
+#   check_gaps$logical <- check_gaps$mean
+#   res <- rle(is.na(check_gaps$mean))
+#   check_gaps$gaps <- rep(res$values*res$lengths,res$lengths)
+#   max <- max(check_gaps$gaps)
+#   gap_summary$max_gap[which(gap_summary$SiteID == gap_summary$SiteID[num])] <<- max
+# }
+# 
+# ## Test on one site:
+# # quantify_gap(8)
+# 
+# ## Create list and apply function to it:
+# input_list <- seq(nrow(gap_summary))
+# lapply(input_list, quantify_gap)
+# 
+# ## Further subset the data by the sites that have =< 3 day gaps
+# gap_summary <- filter(gap_summary, max_gap <= 3)
+# avg <- filter(avg, SiteID %in% gap_summary$SiteID)
+# avg$SiteID <- factor(avg$SiteID)
+# site_selection <- levels(avg$SiteID) %>%
+#   as.data.frame()# 152 sites
+# colnames(site_selection) <- "SiteID"
+# # Save site list after doing site selection 
+# saveRDS(site_selection, "TS_avg_site_selection.rds")
+# 
+# ## Plot example:
+# ggplot(subset(dat, dat$SiteID == "USGS-09085150"))+
+#   geom_line(mapping = aes(x = doy, y = SpC, color = Year))+ # Each colored line is a year of SC data
+#   geom_line(subset(avg, avg$SiteID == "USGS-09085150"), mapping = aes(x = doy, y = mean), color = "black") # The black line is the "averaged" representative year of SC data
+# 
+# ## Format the 'avg' dataframe for input to the clustering code
+#   # Look to this file for guidance:
+#   # Example_avgTS_PSavoy <- readRDS("/Volumes/Blaszczak Lab/FSS/All Data/Example_avgTS_PSavoy.rds")
+#   # sapply(Example_avgTS_PSavoy, class)
 
 sapply(avg, class)
 colnames(avg) <- c("SiteID", "doy", "mean_SpC")
 
 ## Save the averaged data to a dataframe
-saveRDS(avg, "SC_avg.rds")
-
+# saveRDS(avg, "SC_avg.rds")
+saveRDS(avg, "WUS_SC_avg.rds")
 ## Create Representative Annual Time Series - UPPER QUANTILE ############################################################################################################
 ## Create function for creating upper quantile dataframe similar to the 'avg' dataframe
 quant75 <- function(x){
@@ -117,8 +119,8 @@ up_quart <- dat
 up_quart <- up_quart %>%
   group_by(SiteID, doy) %>%
   summarise_at(.vars = "SpC", .funs = c("upper_quart" = quant75))
-## We figured out which SiteID's of data we wanted when we created a representative time series using the MEAN, so use that df to filter this df for the appropriate SiteID's
-up_quart <- filter(up_quart, SiteID %in% avg$SiteID)
+# ## We figured out which SiteID's of data we wanted when we created a representative time series using the MEAN, so use that df to filter this df for the appropriate SiteID's
+# up_quart <- filter(up_quart, SiteID %in% avg$SiteID)
 
 ## Check that this worked
 # check <- subset(dat, dat$SiteID == "USGS-09014050" & dat$doy == 1)
@@ -142,8 +144,8 @@ med <- dat
 med <- med %>%
   group_by(SiteID, doy) %>%
   summarise_at(.vars = "SpC", .funs = c("median" = median))
-## Subset for data availability 
-med <- filter(med, SiteID %in% avg$SiteID)
+# ## Subset for data availability 
+# med <- filter(med, SiteID %in% avg$SiteID)
 
 # check <- subset(dat, dat$SiteID == "USGS-09014050" & dat$doy == 1)
 # check_med <- median(check$SpC)
@@ -164,8 +166,8 @@ low_quart <- dat
 low_quart <- low_quart %>%
   group_by(SiteID, doy) %>%
   summarise_at(.vars = "SpC", .funs = c("lower_quart" = quant25))
-## Subset for data availability
-low_quart <- filter(low_quart, SiteID %in% avg$SiteID)
+# ## Subset for data availability
+# low_quart <- filter(low_quart, SiteID %in% avg$SiteID)
 
 # check <- subset(dat, dat$SiteID == "USGS-09014050" & dat$doy == 1)
 # check_quant <- quantile(check$SpC, .25)
@@ -200,10 +202,12 @@ ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
   print(p1)
 
 ## Export any other data you want to use for clustering (since we only exported mean data above)
-saveRDS(low_quart, "SC_low_quart.rds")
-saveRDS(up_quart, "SC_up_quart.rds")
-saveRDS(med, "SC_med.rds")
-
+# saveRDS(low_quart, "SC_low_quart.rds")
+# saveRDS(up_quart, "SC_up_quart.rds")
+# saveRDS(med, "SC_med.rds")
+  saveRDS(low_quart, "WUS_SC_low_quart.rds")
+  saveRDS(up_quart, "WUS_SC_up_quart.rds")
+  saveRDS(med, "WUS_SC_med.rds")
 # Iterate through all sites to make the plot of all data + quantiles + mean #####################################################################################
 ### Code for creating PDFs of plots in R: 
   ## For one site:
@@ -217,21 +221,22 @@ saveRDS(med, "SC_med.rds")
 
 setwd("/Volumes/Blaszczak Lab/FSS/Figures/SingleTSPlots")
 # x <- "USGS-09034500" # assign to x to test out the function below
-sites <- levels(dat$SiteID) 
-
+avg$SiteID <- factor(avg$SiteID)
+sites <- levels(avg$SiteID)
 ## Function for multiple sites (and all available data)
   plotSpC <- function(x){
-    pdf(paste0(x, "_singleTS.pdf"))
+    pdf(paste0("WUS_", x, "_singleTS.pdf"))
     p <- ggplot(subset(dat, dat$SiteID == x))+
       theme(legend.position = "none", panel.background = element_blank(), axis.line = element_line(colour = "black"))+
       geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
       geom_line(subset(low_quart, up_quart$SiteID == x), mapping = aes(x = doy, y = lower_quart), color = "black")+
       geom_line(subset(med, avg$SiteID == x), mapping = aes(x = doy, y = median), color = "black")+
       geom_line(subset(up_quart, up_quart$SiteID == x), mapping = aes(x = doy, y = upper_quart), color = "black")+
-      geom_line(subset(avg, avg$SiteID == x), mapping = aes(x = doy, y = mean), color = "red")
+      geom_line(subset(avg, avg$SiteID == x), mapping = aes(x = doy, y = mean_SpC), color = "red")
     print(p)
     dev.off()
   }
 
   # plotSpC(x)
   lapply(sites, plotSpC)
+  
