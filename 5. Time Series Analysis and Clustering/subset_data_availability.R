@@ -14,7 +14,6 @@ theme_set(theme(legend.position = "none", panel.background = element_blank(),
 
 ## Bring in data:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-# Flow corrected:
 dat <- readRDS("WUS_all_USGS_SC_Q_data.rds")
 dat$SiteID <- factor(dat$SiteID)
 levels(dat$SiteID) # 645
@@ -30,8 +29,10 @@ dat$doy <- as.numeric(as.character(dat$doy))
 # remove and add necessary columns
 dat <- select(dat, -c("SiteDate"))
 dat <- mutate(dat, SiteYear = paste(SiteID, Year, sep = " "))
+
 # reorder columns
-dat <- select(dat, c("SiteID", "Date", "SiteYear","Year", "doy","SpC_Qcms"))
+names(dat)
+dat <- select(dat, c("SiteID", "Date", "SiteYear","Year", "doy", "SpC", "Q_cms","SpC_Qcms"))
 dat <- dat[complete.cases(dat)]
 head(dat)
 
@@ -77,6 +78,8 @@ rm(doys, dat_count, input_list, quantify_gap)
 gap_summary <- filter(gap_summary, max_gap <= 4)
 sub <- filter(sub, SiteYear %in% gap_summary$SiteYear)
 saveRDS(sub, "WUS_USGS_SC_Q_availability_subset.rds")
+
+sub <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
 rm(gap_summary)
 class(sub$SiteID)
 sub$SiteID <- factor(sub$SiteID)
@@ -92,12 +95,9 @@ p <- ggplot(dat_availability)+
   labs(x = "Year", y = "n(Sites)", title = "Data Availability")
 print(p)
 
-p <- ggplot(sub)+
-  geom_tile(mapping = aes(x = Year, y = SiteID))
-print(p)
-
-
-
+# p <- ggplot(sub)+
+#   geom_tile(mapping = aes(x = Year, y = SiteID))
+# print(p)
 
 
 # Put data availability into a table
@@ -107,7 +107,7 @@ head(dat_availability_table)
 
 # Subset for 2016, 2017, 2018, 2019
 sub$Year <- as.numeric(as.character(sub$Year)) 
-sub2 <- filter(sub, Year > 2016)
+sub2 <- filter(sub, Year > 2003 & Year < 2015)
 sub2$SiteID <- factor(sub2$SiteID)
 # See how many sites have all three of these years that meet the criteria (coverage & gaps)
 dat_availability <- select(sub2, c("SiteID", "Year"))
@@ -117,16 +117,24 @@ p <- ggplot(dat_availability)+
   geom_histogram(mapping = aes(x = as.numeric(as.character(Year)), fill = SiteID), binwidth = 1, color = "white")+
   labs(x = "Year", y = "n(Sites)", title = "Data Availability")
 print(p)
-# Subset for only sites that have all three years
-sub2017 <- subset(sub2, sub2$Year == 2017)
-sub2018 <- subset(sub2, sub2$Year == 2018)
-sub2019 <- subset(sub2, sub2$Year == 2019)
 
-sub1718 <- intersect(sub2017$SiteID, sub2018$SiteID)
-sub1819 <- intersect(sub2018$SiteID, sub2019$SiteID)
-sub171819 <- intersect(sub1718, sub1819)
+# # Subset for only sites that have all three years
+# sub2017 <- subset(sub2, sub2$Year == 2017)
+# sub2018 <- subset(sub2, sub2$Year == 2018)
+# sub2019 <- subset(sub2, sub2$Year == 2019)
+# 
+# sub1718 <- intersect(sub2017$SiteID, sub2018$SiteID)
+# sub1819 <- intersect(sub2018$SiteID, sub2019$SiteID)
+# sub171819 <- intersect(sub1718, sub1819)
+# 
+# sub3 <- subset(sub2, sub2$SiteID %in% sub171819)
 
-sub3 <- subset(sub2, sub2$SiteID %in% sub171819)
+# Subset for only sites that have all 11 years
+ggplot(sub2)+
+  geom_tile(mapping = aes(x = Year, y = SiteID, color = SiteID, fill = SiteID))+
+  theme(axis.text.y = element_blank())
+
+
 sub3$SiteID <- factor(sub3$SiteID)
 levels(sub3$SiteID)
 #NOTE: only 8 sites have all three years
