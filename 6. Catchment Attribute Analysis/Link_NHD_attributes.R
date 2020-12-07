@@ -105,8 +105,8 @@ saveRDS(usgs_ag, "WUS_USGS_Irrigated_Ag.rds")
 rm(usgs_ag, ag_acc)
 
 
-# Generalized Geology ####
-# Bush & Reed (2001) generalized geology types
+# Baseflow Index (BFI) ####
+#
 # accumulated upstream through the river network
 setwd("/Volumes/Blaszczak Lab/FSS/BFI") 
 bfi_acc <- read.csv("BFI_CONUS.csv")
@@ -125,6 +125,27 @@ setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_bfi, "WUS_USGS_BFI.rds")
 rm(usgs_bfi, bfi_acc)
 
+
+# Basin Characteristics  ####
+# 
+# accumulated upstream through the river network
+setwd("/Volumes/Blaszczak Lab/FSS/Basin Characteristics") 
+basinchar_acc <- read.csv("BASIN_CHAR_ACC_CONUS.csv")
+head(basinchar_acc)
+# Subset NLCD by our sites of interest
+basinchar_acc <- subset(basinchar_acc, basinchar_acc$COMID %in% usgs_comid$COMID) # the number of rows should be = to the number of rows in usgs_comid
+# Create one df with all necessary info
+usgs_basinchar <- merge(usgs_comid, basinchar_acc, by = "COMID", all = TRUE)
+# Rename columns to describe land use classes
+names(usgs_basinchar)
+# For more info on each basincharogic class, see the metadata for this specific file in the link at the top of the script
+colnames(usgs_basinchar) <- c("COMID", "SiteID", "Basin_Area_sqkm", "Stream_Slope_pct",
+                              "Basin_Slope_pct", "Elevation_Mean_m", "Elevation_Min_m", "Elevation_Max_m",
+                              "Flowline_Length_km")
+
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+saveRDS(usgs_basinchar, "WUS_USGS_Basin_Characteristics.rds")
+rm(usgs_basinchar, basinchar_acc)
 # GBCO DATA: #################################################################################
 ## Bring in files that have SiteID's and ComID's
   # I am keeping USGS and WQP separate for now
