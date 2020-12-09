@@ -90,10 +90,59 @@ levels(sub$SiteID) # 244
 # Plot data availability
 dat_availability <- select(sub, c("SiteID", "Year"))
 dat_availability <- unique(dat_availability)
-p <- ggplot(dat_availability)+
+
+p <- ggplot(dat_availability, aes(x = as.numeric(as.character(Year)), y = ..count..))+
   geom_histogram(mapping = aes(x = as.numeric(as.character(Year)), fill = SiteID), binwidth = 1, color = "white")+
-  labs(x = "Year", y = "n(Sites)", title = "Data Availability")
+  labs(x = "Year", y = "n(Sites)", title = "Data Availability")+
+  geom_density(color = 'red')
 print(p)
+
+sub2 <- sub %>%
+  group_by(SiteID, Year) %>%
+  summarise_at(.vars = "SpC", .funs = c("mean" = mean))
+
+sub2 <- select(sub2, -c("mean"))
+sub3 <- sub2 %>%
+  group_by(SiteID) %>%
+  count()
+
+p <- ggplot(sub3, aes(x = n, y = ..count..))+
+  geom_histogram(mapping = aes(x = n), binwidth = 1, fill = 'lightseagreen', colour = 'white')+
+  labs(x = "n(Years of Data)", y = "n(Sites)", title = "Data Availability")
+  #geom_density()
+print(p)
+
+# sub2$PORadd <- "1"
+# sub2$PORadd <- as.numeric(sub2$PORadd)
+# sub2 <- as.data.frame(sub2)
+# sub2 <- sub2 %>%
+#   group_by(SiteID) %>%
+#   summarise_at(.vars = "PORadd", .funs = c("Years_cont" = sum))
+# # 88 sites with continuous data  (what happened to 93?)
+# library(tidyverse)
+# 
+# sub2$Years_cont <- as.factor(sub2$Years_cont)
+# print(paste(levels(sub2$Years_cont)))
+# count(SC_cont_POR$Years_cont)
+# x <- c(1,   2,  3,  4,  5,  6, 7,  8, 9, 10, 11, 12, 13, 14, 17, 18,19, 20, 21, 22)
+# y <- c(88, 36, 15, 23, 15, 16, 7, 10, 7,  5, 4,   1,  2,  2,  1,  1, 2,  1,  2, 1)
+# x_name <- "n_years"
+# y_name <- "n_occurrences"
+# cont <- data.frame(x,y)
+# names(cont) <- c(x_name,y_name)
+# 
+# ggplot(cont, aes(x=n_years, y = n_occurrences)) +
+#   labs(title = "Concurrent SC and Q Data", x = "# of Years", y = "# of Sites", subtitle = "n = 244 sites")+
+#   geom_col(alpha=.5, position="identity", colour = NA, fill = "lightseagreen")+
+#   theme_classic()+
+#   theme(plot.margin=unit(c(0.5,1,0.5,0.5),"cm"))+
+#   theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5))+
+#   scale_y_continuous(expand = c(NA, 0), limits = c(0, 27))+
+#   scale_x_continuous(expand = c(0, NA), limits = c(0, 25))
+
+
+
+
 
 # p <- ggplot(sub)+
 #   geom_tile(mapping = aes(x = Year, y = SiteID))
