@@ -91,24 +91,25 @@ levels(sub$SiteID) # 244
 dat_availability <- select(sub, c("SiteID", "Year"))
 dat_availability <- unique(dat_availability)
 
+# HISTOGRAM nSites
 p <- ggplot(dat_availability, aes(x = as.numeric(as.character(Year)), y = ..count..))+
-  geom_histogram(mapping = aes(x = as.numeric(as.character(Year)), fill = SiteID), binwidth = 1, color = "white")+
-  labs(x = "Year", y = "n(Sites)", title = "Data Availability")+
-  geom_density(color = 'red')
+  geom_histogram(mapping = aes(x = as.numeric(as.character(Year))), binwidth = 1, fill = 'lightseagreen', color = 'white')+
+  labs(x = "Year", y = "Number of Sites", title = "Data Availability: # of Sites per Year with Data", subtitle = 'n = 244 sites')
+  #geom_density(color = 'red')+
 print(p)
 
+
+# HISTOGRAM nYears
 sub2 <- sub %>%
   group_by(SiteID, Year) %>%
   summarise_at(.vars = "SpC", .funs = c("mean" = mean))
-
 sub2 <- select(sub2, -c("mean"))
 sub3 <- sub2 %>%
   group_by(SiteID) %>%
   count()
-
 p <- ggplot(sub3, aes(x = n, y = ..count..))+
   geom_histogram(mapping = aes(x = n), binwidth = 1, fill = 'lightseagreen', colour = 'white')+
-  labs(x = "n(Years of Data)", y = "n(Sites)", title = "Data Availability")
+  labs(x = "Number of Years of Data", y = "Number of Sites", title = "Data Availability: # of Years of Data per Site", subtitle = "n = 244 sites")
   #geom_density()
 print(p)
 
