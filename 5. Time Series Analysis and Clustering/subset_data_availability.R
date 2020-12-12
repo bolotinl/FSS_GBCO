@@ -77,8 +77,9 @@ rm(doys, dat_count, input_list, quantify_gap)
 # Subset by gap size ##################################################################
 gap_summary <- filter(gap_summary, max_gap <= 4)
 sub <- filter(sub, SiteYear %in% gap_summary$SiteYear)
-saveRDS(sub, "WUS_USGS_SC_Q_availability_subset.rds")
+# saveRDS(sub, "WUS_USGS_SC_Q_availability_subset.rds")
 
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 sub <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
 rm(gap_summary)
 class(sub$SiteID)
@@ -209,7 +210,12 @@ some.states <- c('california', 'nevada', 'utah', 'arizona', 'colorado', 'new mex
 some.states.map <- map_data("state", region = some.states)
 ggplot(some.states.map)+
   geom_polygon(mapping = aes(x = long, y = lat, group = group), fill = "grey", color = "white")+
-  geom_point(meta, mapping = aes(x = Lon, y = Lat, color = "blue"))
+  geom_point(meta, mapping = aes(x = Lon, y = Lat), color = 'indianred1', size = 1)+
+  theme(panel.background = element_blank(), legend.position = 'none', 
+        axis.title = element_blank(), axis.text = element_blank(), 
+        axis.ticks = element_blank(), plot.title = element_text(hjust = 0.5), 
+        plot.subtitle = element_text(hjust = 0.5))+
+  labs(title = "Concurrent USGS SC and Q Sites", subtitle = "n = 244")
 # NOTE: yikes........maybe we can keep other years, flow normalize, and acknowledge
 # that some years may be over-represented??
 
