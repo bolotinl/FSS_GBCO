@@ -15,8 +15,11 @@ theme_set(theme(legend.position = "none", panel.background = element_blank(),
 ## Bring in data:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("WUS_all_USGS_SC_Q_data.rds")
+dat <- readRDS("WUS_UNM_all_USGS_SC_Q_data.rds")
+
 dat$SiteID <- factor(dat$SiteID)
 levels(dat$SiteID) # 645
+# 652 with UNM data
 
 ## Format data:
 dat$Date <- ymd(dat$Date)
