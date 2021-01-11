@@ -46,6 +46,30 @@ ggplot(subset(dat, dat$SiteID == "USGS-14139800"))+
 saveRDS(dat, "WUS_all_USGS_SC_Q_data.rds")
 
 
+# Add in Rio Grande data from UNM:
+wus <- readRDS("WUS_all_USGS_SC_Q_data.rds")
+unm <- readRDS("UNM_all_SC_Q_data.rds")
+names(wus)
+names(unm)
+unm$SiteDate <- paste(unm$SiteID, unm$DateTime, sep = " ")
+names(unm)
+unm <- select(unm, c("SiteID", "DateTime", "SiteDate", "SpC", "Q_cfs", "Q_cms", "SpC_Qcms"))
+colnames(unm)[2] <- "Date"
+dat <- rbind(wus, unm)
+
+saveRDS(dat, "WUS_UNM_all_USGS_SC_Q_data.rds")
+
+
+
+
+
+
+
+
+
+
+
+
 
 # For GBCO Data:
 ## Bring in data
