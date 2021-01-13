@@ -11,7 +11,9 @@ theme_set(theme(legend.position = "none",panel.background = element_blank(),
 ## Bring in all specific conductance data (not flow-normalized)
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # dat <- readRDS("all_SC_data.rds")
-dat <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
+# dat <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
+dat <- readRDS("WUS_UNM_USGS_SC_Q_availability_subset.rds")
+
 ## Format dataframe and add some important details
 sapply(dat, class)
 dat$Date <- as.POSIXct(as.character(dat$Date), format = "%Y-%m-%d")
@@ -107,6 +109,8 @@ colnames(avg) <- c("SiteID", "doy", "mean_SpC")
 ## Save the averaged data to a dataframe
 # saveRDS(avg, "SC_avg.rds")
 saveRDS(avg, "WUS_SC_avg.rds")
+saveRDS(avg, "WUS_UNM_SC_avg.rds")
+
 ## Create Representative Annual Time Series - UPPER QUANTILE ############################################################################################################
 ## Create function for creating upper quantile dataframe similar to the 'avg' dataframe
 quant75 <- function(x){
@@ -205,9 +209,12 @@ ggplot(subset(dat, dat$SiteID == "USGS-10133800"))+
 # saveRDS(low_quart, "SC_low_quart.rds")
 # saveRDS(up_quart, "SC_up_quart.rds")
 # saveRDS(med, "SC_med.rds")
-  saveRDS(low_quart, "WUS_SC_low_quart.rds")
-  saveRDS(up_quart, "WUS_SC_up_quart.rds")
-  saveRDS(med, "WUS_SC_med.rds")
+  # saveRDS(low_quart, "WUS_SC_low_quart.rds")
+  # saveRDS(up_quart, "WUS_SC_up_quart.rds")
+  # saveRDS(med, "WUS_SC_med.rds")
+  saveRDS(low_quart, "WUS_UNM_SC_low_quart.rds")
+  saveRDS(up_quart, "WUS_UNM_SC_up_quart.rds")
+  saveRDS(med, "WUS_UNM_SC_med.rds")
 # Iterate through all sites to make the plot of all data + quantiles + mean #####################################################################################
 ### Code for creating PDFs of plots in R: 
   ## For one site:
@@ -225,7 +232,7 @@ avg$SiteID <- factor(avg$SiteID)
 sites <- levels(avg$SiteID)
 ## Function for multiple sites (and all available data)
   plotSpC <- function(x){
-    pdf(paste0("WUS_", x, "_singleTS.pdf"))
+    pdf(paste0("WUS_UNM_", x, "_singleTS.pdf"))
     p <- ggplot(subset(dat, dat$SiteID == x))+
       theme(legend.position = "none", panel.background = element_blank(), axis.line = element_line(colour = "black"))+
       geom_line(mapping = aes(x = doy, y = SpC, color = Year))+
@@ -239,4 +246,5 @@ sites <- levels(avg$SiteID)
 
   # plotSpC(x)
   lapply(sites, plotSpC)
+  
   

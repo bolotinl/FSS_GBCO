@@ -13,7 +13,9 @@ setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # sites$SiteID <- as.factor(sites$SiteID)
 # sites <- levels(sites$SiteID)
 # dat <- subset(dat, dat$SiteID %in% sites) # 407,672
-dat <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
+# dat <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
+dat <- readRDS("WUS_UNM_USGS_SC_Q_availability_subset.rds")
+
 
 ## Add some important details
 dat$Date <- as.POSIXct(as.character(dat$Date), format = "%Y-%m-%d")
@@ -53,7 +55,7 @@ up_quart <- up_quart %>%
   group_by(SiteID, doy) %>%
   summarise_at(.vars = "SpC_Qcms", .funs = c("upper_quart" = quant75))
 
-## Median (Middle Quatile)
+## Median (Middle Quantile)
 med <- dat
 med <- med %>%
   group_by(SiteID, doy) %>%
@@ -80,15 +82,19 @@ print(p2)
 # saveRDS(avg, "SC_Q_avg.rds")
 # saveRDS(up_quart, "SC_Q_up_quart.rds")
 # saveRDS(med, "SC_Q_med.rds")
-saveRDS(low_quart, "WUS_SC_Q_low_quart.rds")
-saveRDS(avg, "WUS_SC_Q_avg.rds")
-saveRDS(up_quart, "WUS_SC_Q_up_quart.rds")
-saveRDS(med, "WUS_SC_Q_med.rds")
+# saveRDS(low_quart, "WUS_SC_Q_low_quart.rds")
+# saveRDS(avg, "WUS_SC_Q_avg.rds")
+# saveRDS(up_quart, "WUS_SC_Q_up_quart.rds")
+# saveRDS(med, "WUS_SC_Q_med.rds")
+saveRDS(low_quart, "WUS_UNM_SC_Q_low_quart.rds")
+saveRDS(avg, "WUS_UNM_SC_Q_avg.rds")
+saveRDS(up_quart, "WUS_UNM_SC_Q_up_quart.rds")
+saveRDS(med, "WUS_UNM_SC_Q_med.rds")
 
 ## Function to create TS plots for all sites
 setwd("/Volumes/Blaszczak Lab/FSS/Figures/SingleTSPlots")
 plotSpC_Qcms <- function(x){
-  pdf(paste0("WUS_", x, "_singleTS_flowcorrected.pdf"))
+  pdf(paste0("WUS_UNM_", x, "_singleTS_flowcorrected.pdf"))
   p <- ggplot(subset(dat, dat$SiteID == x))+
     theme(legend.position = "none", panel.background = element_blank(), axis.line = element_line(colour = "black"))+
     geom_line(mapping = aes(x = doy, y = SpC_Qcms, color = Year))+
