@@ -81,13 +81,16 @@ rm(doys, dat_count, input_list, quantify_gap)
 gap_summary <- filter(gap_summary, max_gap <= 4)
 sub <- filter(sub, SiteYear %in% gap_summary$SiteYear)
 # saveRDS(sub, "WUS_USGS_SC_Q_availability_subset.rds")
+saveRDS(sub, "WUS_UNM_USGS_SC_Q_availability_subset.rds")
 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-sub <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
+# sub <- readRDS("WUS_USGS_SC_Q_availability_subset.rds")
+sub <- readRDS("WUS_UNM_USGS_SC_Q_availability_subset.rds")
 rm(gap_summary)
 class(sub$SiteID)
 sub$SiteID <- factor(sub$SiteID)
 levels(sub$SiteID) # 244
+# 246 with UNM data
 # NOTE: at this point, sub is a df with data only from site-years that had 219/365 days
 # and gaps of four days or smaller
 
@@ -154,45 +157,45 @@ print(p)
 # print(p)
 
 
-# Put data availability into a table
-dat_availability_table <- plyr::count(dat_availability, vars = "Year")
-dat_availability_table <- dat_availability_table[with(dat_availability_table, order(-freq)),]
-head(dat_availability_table)
-
-# Subset for 2016, 2017, 2018, 2019
-sub$Year <- as.numeric(as.character(sub$Year)) 
-sub2 <- filter(sub, Year > 2003 & Year < 2015)
-sub2$SiteID <- factor(sub2$SiteID)
-# See how many sites have all three of these years that meet the criteria (coverage & gaps)
-dat_availability <- select(sub2, c("SiteID", "Year"))
-dat_availability <- unique(dat_availability)
-
-p <- ggplot(dat_availability)+
-  geom_histogram(mapping = aes(x = as.numeric(as.character(Year)), fill = SiteID), binwidth = 1, color = "white")+
-  labs(x = "Year", y = "n(Sites)", title = "Data Availability")
-print(p)
-
-# # Subset for only sites that have all three years
-# sub2017 <- subset(sub2, sub2$Year == 2017)
-# sub2018 <- subset(sub2, sub2$Year == 2018)
-# sub2019 <- subset(sub2, sub2$Year == 2019)
+# # Put data availability into a table
+# dat_availability_table <- plyr::count(dat_availability, vars = "Year")
+# dat_availability_table <- dat_availability_table[with(dat_availability_table, order(-freq)),]
+# head(dat_availability_table)
 # 
-# sub1718 <- intersect(sub2017$SiteID, sub2018$SiteID)
-# sub1819 <- intersect(sub2018$SiteID, sub2019$SiteID)
-# sub171819 <- intersect(sub1718, sub1819)
+# # Subset for 2016, 2017, 2018, 2019
+# sub$Year <- as.numeric(as.character(sub$Year)) 
+# sub2 <- filter(sub, Year > 2003 & Year < 2015)
+# sub2$SiteID <- factor(sub2$SiteID)
+# # See how many sites have all three of these years that meet the criteria (coverage & gaps)
+# dat_availability <- select(sub2, c("SiteID", "Year"))
+# dat_availability <- unique(dat_availability)
 # 
-# sub3 <- subset(sub2, sub2$SiteID %in% sub171819)
-
-# Subset for only sites that have all 11 years
-ggplot(sub2)+
-  geom_tile(mapping = aes(x = Year, y = SiteID, color = SiteID, fill = SiteID))+
-  theme(axis.text.y = element_blank())
-
-
-sub3$SiteID <- factor(sub3$SiteID)
-levels(sub3$SiteID)
-#NOTE: only 8 sites have all three years
-rm(sub2017, sub2018, sub2019, sub1718, sub1819, sub171819, dat_availability, dat_availability_table)
+# p <- ggplot(dat_availability)+
+#   geom_histogram(mapping = aes(x = as.numeric(as.character(Year)), fill = SiteID), binwidth = 1, color = "white")+
+#   labs(x = "Year", y = "n(Sites)", title = "Data Availability")
+# print(p)
+# 
+# # # Subset for only sites that have all three years
+# # sub2017 <- subset(sub2, sub2$Year == 2017)
+# # sub2018 <- subset(sub2, sub2$Year == 2018)
+# # sub2019 <- subset(sub2, sub2$Year == 2019)
+# # 
+# # sub1718 <- intersect(sub2017$SiteID, sub2018$SiteID)
+# # sub1819 <- intersect(sub2018$SiteID, sub2019$SiteID)
+# # sub171819 <- intersect(sub1718, sub1819)
+# # 
+# # sub3 <- subset(sub2, sub2$SiteID %in% sub171819)
+# 
+# # Subset for only sites that have all 11 years
+# ggplot(sub2)+
+#   geom_tile(mapping = aes(x = Year, y = SiteID, color = SiteID, fill = SiteID))+
+#   theme(axis.text.y = element_blank())
+# 
+# 
+# sub3$SiteID <- factor(sub3$SiteID)
+# levels(sub3$SiteID)
+# #NOTE: only 8 sites have all three years
+# rm(sub2017, sub2018, sub2019, sub1718, sub1819, sub171819, dat_availability, dat_availability_table)
 
 # Map sites to see spatial distribution ###############################################
 # Read in location data for USGS sites
@@ -200,14 +203,36 @@ meta <- readRDS("WUS_USGS_disch_SC_sites.rds")
 # Subset for important info
 names(meta)
 meta <- select(meta, c("Site_ID", "Lat", "Lon"))
+
 # Format columns
 meta$Site_ID <- as.numeric(as.character(meta$Site_ID))
 meta$Site_ID <- ifelse(meta$Site_ID < 10000000, paste0("0", meta$Site_ID), paste0(meta$Site_ID))
 meta$Site_ID <- paste0("USGS-", meta$Site_ID)
 colnames(meta)[1] <- "SiteID"
+
+# Add in UNM data (coordinates for Cochiti and Lyden)
+id <- c("UNM-cochiti", "UNM-lyden")
+lat <- c(35.40207, 36.84583)
+long <- c(-106.18230, -105.59528)
+
+unm_meta <- cbind(id, lat)
+unm_meta <- cbind(unm_meta, long)
+unm_meta <- as.data.frame(unm_meta)
+colnames(unm_meta) <- c("SiteID", "Lat", "Lon")
+meta <- rbind(meta, unm_meta)
+rm(id, lat, long, unm_meta)
+
 # Subset for sites of interest
 meta <- subset(meta, meta$SiteID %in% sub$SiteID)
 meta <- unique(meta)
+sapply(meta, class)
+meta$Lat <- as.numeric(as.character(meta$Lat))
+meta$Lon <- as.numeric(as.character(meta$Lon))
+
+# Save new metadata file
+getwd()
+saveRDS(meta, "WUS_UNM_USGS_disch_SC_sites.rds")
+
 # Plot
 some.states <- c('california', 'nevada', 'utah', 'arizona', 'colorado', 'new mexico', 'texas', 'oregon', 'washington', 'montana', 'idaho', 'north dakota', 'south dakota', 'wyoming', 'kansas', 'nebraska', 'oklahoma', 'missouri', 'arkansas', 'iowa', 'minnesota', 'louisiana')
 some.states.map <- map_data("state", region = some.states)
@@ -217,10 +242,9 @@ ggplot(some.states.map)+
   theme(panel.background = element_blank(), legend.position = 'none', 
         axis.title = element_blank(), axis.text = element_blank(), 
         axis.ticks = element_blank(), plot.title = element_text(hjust = 0.5), 
-        plot.subtitle = element_text(hjust = 0.5))+
-  labs(title = "Concurrent USGS SC and Q Sites", subtitle = "n = 244")
-# NOTE: yikes........maybe we can keep other years, flow normalize, and acknowledge
-# that some years may be over-represented??
+        plot.subtitle = element_text(hjust = 0.5), axis.line = element_blank())+
+  labs(title = "Concurrent USGS SC and Q Sites", subtitle = "n = 246")
+
 
 
 
