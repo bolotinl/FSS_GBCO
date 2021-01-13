@@ -9,7 +9,8 @@ rm(x)
 
 ## Bring in time series data from the project so we know what sites we need to assign ComID's to
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-dat <- readRDS("WUS_all_USGS_SC_Q_data.rds")
+# dat <- readRDS("WUS_all_USGS_SC_Q_data.rds")
+dat <- readRDS("WUS_UNM_USGS_SC_Q_availability_subset.rds")
 USGS <- dat
 
 ## BRING IN LOCATION DATA  ############################################################################################
@@ -23,7 +24,7 @@ NHD <- subset(NHD, NHD$SiteID %in% USGS$SiteID)
 head(NHD)
 NHD <- select(NHD, c("SiteID", "LON_NHD", "LAT_NHD", "HUC", "STATE_CD", "DA_SQ_MILE"))
   # See what USGS sites from our data were not in NHD
-remainder <- setdiff(USGS$SiteID, NHD$SiteID)
+(remainder <- setdiff(USGS$SiteID, NHD$SiteID))
   # Bring in other USGS metadata for these sites
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 USGS_meta <- readRDS("USGS_disch_SC_sites.rds") # This file is a subset from the specific conductance site query (only sites in the GB and CO River basin)
@@ -78,6 +79,20 @@ head(USGS_sites)
   # All USGS sites have now been assigned a ComID:
   View(USGS_sites)
 
+  # The last thing to do (specific to Freshwater Salinization Regimes project) is to assign ComID's to the two UNM sites we added on the Rio Grande
+  # Follow this example:
+  # point <- sf::st_sfc(sf::st_point(c(-76.87479, 39.48233)), crs = 4326)
+  # discover_nhdplus_id(point)
+  unm_meta <- readRDS("WUS_UNM_USGS_disch_SC_sites.rds")
+  unm_meta <- subset(unm_meta, unm_meta$SiteID == "UNM-cochiti" | unm_meta$SiteID == "UNM-lyden")
+  (unm_meta)
+  
+  point <- sf::st_sfc(sf::st_point(c(-106.1823, 35.40207)), crs = 4326)
+  USGS_sites$COMID[which(USGS_sites$SiteID == "UNM-cochiti")] <- discover_nhdplus_id(point)
+  
+  point <- sf::st_sfc(sf::st_point(c(-105.5953, 36.84583)), crs = 4326)
+  USGS_sites$COMID[which(USGS_sites$SiteID == "UNM-lyden")] <- discover_nhdplus_id(point)
+  
   ## Remove stuff we no longer need 
   rm(USGS_meta, USGS, remainder, USGS_meta_list, findCOMID_NHD_coords, findCOMID_USGS_coords, findCOMID_USGS_ID, NHD)
 # NOTE: USGS_sites is now a dataframe of all the USGS SiteID's and their ComIDs. We will now find ComID's for all WQP
@@ -85,7 +100,9 @@ head(USGS_sites)
 
 ### SAVE/COMBINE OUPUTS ###############################################################################################
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-saveRDS(USGS_sites, "WUS_USGS_ComID.rds")
+# saveRDS(USGS_sites, "WUS_USGS_ComID.rds")
+saveRDS(USGS_sites, "WUS_UNM_USGS_ComID.rds")
+
 
 
 #######################################################################################################
