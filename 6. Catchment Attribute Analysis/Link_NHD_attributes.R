@@ -5,7 +5,10 @@ library(tidyverse)
 ## WUS DATA: ##################################################################################
 ## Bring in files that have SiteID's and ComID's
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-usgs_comid <- readRDS("WUS_USGS_ComID.rds")
+# usgs_comid <- readRDS("WUS_USGS_ComID.rds")
+usgs_comid <- readRDS("WUS_UNM_USGS_ComID.rds")
+
+
 
 # Bring in the NHD Attribute Data 
 # downloaded at https://www.sciencebase.gov/catalog/item/5669a79ee4b08895842a1d47
@@ -33,6 +36,7 @@ colnames(usgs_nlcd) <- c("COMID", "SiteID", "OpenWater_pct", "PerennialIceSnow_p
 ## Save output
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_nlcd, "WUS_USGS_NLCD16.rds")
+saveRDS(usgs_nlcd, "WUS_UNM_USGS_NLCD16.rds")
 rm(nlcd_acc, usgs_nlcd)
 
 # Irrigated Agriculture 
@@ -53,6 +57,7 @@ colnames(usgs_ag) <- c("COMID", "SiteID", "MIRAD_Irrig_Ag_Land_pct", "MIRAD_NoDa
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_ag, "WUS_USGS_Irrigated_Ag.rds")
+saveRDS(usgs_ag, "WUS_UNM_USGS_Irrigated_Ag.rds")
 rm(usgs_ag, ag_acc)
 
 # National Inventory of Dams (NID)
@@ -74,6 +79,7 @@ colnames(usgs_NID) <- c("COMID", "SiteID", "NDAMS1990", "NID_STORAGE1990",
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_NID, "WUS_USGS_NID_1990.rds")
+saveRDS(usgs_NID, "WUS_UNM_USGS_NID_1990.rds")
 rm(usgs_NID, NID_acc)
 
 # 2000:
@@ -94,6 +100,7 @@ colnames(usgs_NID) <- c("COMID", "SiteID", "NDAMS2000", "NID_STORAGE2000",
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_NID, "WUS_USGS_NID_2000.rds")
+saveRDS(usgs_NID, "WUS_UNM_USGS_NID_2000.rds")
 rm(usgs_NID, NID_acc)
 
 #2010: 
@@ -114,6 +121,7 @@ colnames(usgs_NID) <- c("COMID", "SiteID", "NDAMS2010", "NID_STORAGE2010",
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_NID, "WUS_USGS_NID_2010.rds")
+saveRDS(usgs_NID, "WUS_UNM_USGS_NID_2010.rds")
 rm(usgs_NID, NID_acc)
 
 #2013:
@@ -134,6 +142,7 @@ colnames(usgs_NID) <- c("COMID", "SiteID", "NDAMS2013", "NID_STORAGE2013",
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_NID, "WUS_USGS_NID_2013.rds")
+saveRDS(usgs_NID, "WUS_UNM_USGS_NID_2013.rds")
 rm(usgs_NID, NID_acc)
 
 
@@ -156,6 +165,7 @@ colnames(usgs_geol) <- c("COMID", "SiteID", "BR_Gneiss", "BR_Granitic", "BR_Ultr
 # Save output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_geol, "WUS_USGS_Gen_Geology.rds")
+saveRDS(usgs_geol, "WUS_UNM_USGS_Gen_Geology.rds")
 rm(usgs_geol, geol_acc)
 
 # Olson Geology:
@@ -174,6 +184,7 @@ colnames(usgs_geol) <- c("COMID", "SiteID", "OLSON_K2O", "OLSON_CaO", "OLSON_Fe2
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_geol, "WUS_USGS_Geochem_Geology.rds")
+saveRDS(usgs_geol, "WUS_UNM_USGS_Geochem_Geology.rds")
 rm(usgs_geol, geol_acc)
 
 # Water Balance/Climate ####
@@ -195,6 +206,7 @@ colnames(usgs_bfi) <- c("COMID", "SiteID", "BFI_pct", "BFI_NoData")
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_bfi, "WUS_USGS_BFI.rds")
+saveRDS(usgs_bfi, "WUS_UNM_USGS_BFI.rds")
 rm(usgs_bfi, bfi_acc)
 
 # Water Balance Model
@@ -216,6 +228,7 @@ colnames(usgs_waterbal) <- c("COMID", "SiteID", "WBM_AET", "WBM_PET", "WBM_PRCP"
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_waterbal, "WUS_USGS_Water_Balance.rds")
+saveRDS(usgs_waterbal, "WUS_UNM_USGS_Water_Balance.rds")
 rm(waterbal_acc, usgs_waterbal)
 
 # Percent Snow
@@ -234,6 +247,7 @@ colnames(usgs_prsnow) <- c("COMID", "SiteID", "PRSNOW", "PRSNOW_NoData")
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_prsnow, "WUS_USGS_Percent_Snow.rds")
+saveRDS(usgs_prsnow, "WUS_UNM_USGS_Percent_Snow.rds")
 rm(prsnow_acc, usgs_prsnow)
 
 
@@ -258,6 +272,7 @@ colnames(usgs_basinchar) <- c("COMID", "SiteID", "Basin_Area_sqkm", "Stream_Slop
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_basinchar, "WUS_USGS_Basin_Characteristics.rds")
+saveRDS(usgs_basinchar, "WUS_UNM_USGS_Basin_Characteristics.rds")
 rm(usgs_basinchar, basinchar_acc)
 
 # Soil Characteristics ####
@@ -276,6 +291,7 @@ colnames(usgs_soil) <- c("COMID", "SiteID", "Silt_avg", "Clay_avg","Sand_avg", "
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_soil, "WUS_USGS_Soil_Texture.rds")
+saveRDS(usgs_soil, "WUS_UNM_USGS_Soil_Texture.rds")
 rm(usgs_soil, soil_acc)
 
 # Soil Salinity:
@@ -294,6 +310,7 @@ colnames(usgs_soil) <- c("COMID", "SiteID", "Salinity", "Salinity_NoData")
 # Save Output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_soil, "WUS_USGS_Soil_Salinity.rds")
+saveRDS(usgs_soil, "WUS_UNM_USGS_Soil_Salinity.rds")
 rm(usgs_soil, soil_acc)
 
 # Soil pH:
@@ -312,6 +329,7 @@ colnames(usgs_soil) <- c("COMID", "SiteID", "pH", "pH_NoData")
 # Save output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_soil, "WUS_USGS_Soil_pH.rds")
+saveRDS(usgs_soil, "WUS_UNM_USGS_Soil_pH.rds")
 rm(usgs_soil, soil_acc)
 
 # Soil layer attributes:
@@ -330,10 +348,13 @@ colnames(usgs_soil) <- c("COMID", "SiteID", "Avg_Bulk_Density", "Thickness", "Pe
 # Save output:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_soil, "WUS_USGS_Soil_Layer_Attributes.rds")
+saveRDS(usgs_soil, "WUS_UNM_USGS_Soil_Layer_Attributes.rds")
 rm(usgs_soil, soil_acc)
 
 # CONCATENATE DATA FRAMES ####
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+
+# I copied and pasted two versions of the same code below. One using western US data before adding Rio Grande sites, and one after adding Rio Grande sites.
 
 # Geologic Attributes:
 geol_1 <- readRDS("WUS_USGS_Gen_Geology.rds")
@@ -402,6 +423,73 @@ saveRDS(mod, "WUS_USGS_Hydrologic_Modification_Attributes.rds")
 write.csv(mod, "WUS_USGS_Hydrologic_Modification_Attributes.csv")
 rm(mod)
 
+#### WITH RIO GRANDE #################################################################
+# Geologic Attributes:
+geol_1 <- readRDS("WUS_UNM_USGS_Gen_Geology.rds")
+geol_2 <- readRDS("WUS_UNM_USGS_Geochem_Geology.rds")
+geol <- merge(geol_1, geol_2, all = TRUE)
+rm(geol_1, geol_2)
+names(geol)
+saveRDS(geol, "WUS_UNM_USGS_Geologic_Attributes.rds")
+write.csv(geol, "WUS_UNM_USGS_Geologic_Attributes.csv")
+rm(geol)
+
+# Water Balance/Climate Attributes
+wbc_1 <- readRDS("WUS_UNM_USGS_Water_Balance.rds")
+wbc_2 <- readRDS("WUS_UNM_USGS_BFI.rds")
+wbc_3 <- readRDS("WUS_UNM_USGS_Percent_Snow.rds")
+wbc <- merge(wbc_1, wbc_2, all = TRUE)
+wbc <- merge(wbc, wbc_3, all = TRUE)
+rm(wbc_1, wbc_2, wbc_3)
+names(wbc)
+saveRDS(wbc, "WUS_UNM_USGS_Water_Bal_Climate_Attributes.rds")
+write.csv(wbc, "WUS_UNM_USGS_Water_Bal_Climate_Attributes.csv")
+rm(wbc)
+
+# Soil Characteristics:
+soil_1 <- readRDS("WUS_UNM_USGS_Soil_Texture.rds")
+soil_2 <- readRDS("WUS_UNM_USGS_Soil_pH.rds")
+soil_3 <- readRDS("WUS_UNM_USGS_Soil_Salinity.rds")
+soil_4 <- readRDS("WUS_UNM_USGS_Soil_Layer_Attributes.rds")
+soil <- merge(soil_1, soil_2, all = TRUE)
+soil <- merge(soil, soil_3, all = TRUE)
+soil <- merge(soil, soil_4, all = TRUE)
+rm(soil_1, soil_2, soil_3, soil_4)
+names(soil)
+saveRDS(soil, "WUS_UNM_USGS_Soil_Attributes.rds")
+write.csv(soil, "WUS_UNM_USGS_Soil_Attributes.csv")
+rm(soil)
+
+# Physiographic Characteristics
+basin_1 <- readRDS("WUS_UNM_USGS_Basin_Characteristics.rds")
+names(basin_1)
+colnames(basin_1) <- c("COMID", "SiteID", "Basin_Area", "Stream_Slope", "Basin_Slope", 
+                       "Elevation_Mean", "Elevation_Min", "Elevation_Max", "Flowline_Length")
+saveRDS(basin_1, "WUS_UNM_USGS_Physiographic_Attributes.rds")
+write.csv(basin_1, "WUS_UNM_USGS_Physiographic_Attributes.csv")
+rm(basin_1)
+
+# Land Use Attributes
+land_1 <- readRDS("WUS_UNM_USGS_NLCD16.rds")
+land_2 <- readRDS("WUS_UNM_USGS_Irrigated_Ag.rds")
+land <- merge(land_1, land_2, all = TRUE)
+saveRDS(land, "WUS_UNM_USGS_Land_Use_Attributes.rds")
+write.csv(land, "WUS_UNM_USGS_Land_Use_Attributes.csv")
+rm(land_1, land_2, land)
+
+# Hydrologic Modification Attributes
+mod_1 <- readRDS("WUS_UNM_USGS_NID_1990.rds")
+mod_2 <- readRDS("WUS_UNM_USGS_NID_2000.rds")
+mod_3 <- readRDS("WUS_UNM_USGS_NID_2010.rds")
+mod_4 <- readRDS("WUS_UNM_USGS_NID_2013.rds")
+mod <- merge(mod_1, mod_2, all = TRUE)
+mod <- merge(mod, mod_3, all = TRUE)
+mod <- merge(mod, mod_4, all = TRUE)
+rm(mod_1, mod_2, mod_3, mod_4)
+names(mod)
+saveRDS(mod, "WUS_UNM_USGS_Hydrologic_Modification_Attributes.rds")
+write.csv(mod, "WUS_UNM_USGS_Hydrologic_Modification_Attributes.csv")
+rm(mod)
 
 
 
