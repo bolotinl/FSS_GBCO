@@ -2,6 +2,7 @@
 # Bring df back in for RF 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
+dat <- readRDS("attribute_tune_df.rds")
 
 # Now remove the SiteID and COMID so it isn't used by the RF model
 dat <- dat %>%
@@ -10,6 +11,8 @@ dat <- dat %>%
 # Turn cluster into a factor
 sapply(dat, class)
 dat$Cluster <- as.factor(dat$Cluster)
+
+# See what happens when we remove certain groups?
 
 # SIMPLIFIED VERSION #################################################################
 # Over simplified example:
@@ -47,6 +50,19 @@ pred3 = performance(perf, "tpr","fpr")
 plot(pred3,main="ROC Curve for Random Forest",col=2,lwd=2)
 abline(a=0,b=1,lwd=2,lty=2,col="gray")
 
+# OOB = 23.27%
+
+
+
+
+
+
+
+
+
+
+
+
 
 # TIDY MODELS WORKFLOW MODELING #############################################################################################
 # Tidymodels workflow: 
@@ -55,132 +71,252 @@ library(tidymodels) # for the rsample package, along with the rest of tidymodels
 # Helper packages
 library(ranger)
 library(vip)
+# Validation Set ####
+# setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+# dat <- readRDS("attribute_df.rds")
+# dat <- readRDS("attribute_tune_df.rds")
+# # Now remove the SiteID and COMID so it isn't used by the RF model
+# dat <- dat %>%
+#   select(-c("SiteID", "COMID")) # might not be necessary depending on which .rds file you use
+# 
+# # Turn cluster into a factor
+# sapply(dat, class)
+# dat$Cluster <- as.factor(dat$Cluster)
+# dat <- as_tibble(dat)
+# # Might be able to get rid of this later
+# levels(dat$Cluster) <- c(levels(dat$Cluster), "Class 1")
+# levels(dat$Cluster) <- c(levels(dat$Cluster), "Class 2")
+# dat$Cluster[dat$Cluster == "1"] <- "Class 1"
+# dat$Cluster[dat$Cluster == "2"] <- "Class 2"
+# dat$Cluster <- factor(dat$Cluster) # Get rid of unused factor levels
+# 
+# # See distribution of clusters so we can ensure it will be the same in our training vs testing datasets
+# dat %>% 
+#   count(Cluster) %>% 
+#   mutate(prop = n/sum(n)) # ~70/30
+# 
+# # Split data into testing vs training datasets
+# set.seed(123)
+# splits      <- initial_split(dat, strata = Cluster)
+# 
+# dat_other <- training(splits)
+# dat_test  <- testing(splits)
+# 
+# # Check that we kept the distribution of clusters
+# dat_other %>% 
+#   count(Cluster) %>% 
+#   mutate(prop = n/sum(n))
+# 
+# dat_test  %>% 
+#   count(Cluster) %>% 
+#   mutate(prop = n/sum(n))
+# # both still ~70/30
+# 
+# # Use validation set instead of 10-fold cross validation
+# # NOTE: I think we may still want to use CV10 because our dataset is much smaller than the one used here 
+# set.seed(234)
+# val_set <- validation_split(dat_other, 
+#                             strata = Cluster, 
+#                             prop = 0.80)
+# val_set
+# 
+# cores <- parallel::detectCores()
+# cores
+# 
+# rf_mod <- 
+#   rand_forest(mtry = tune(), min_n = tune(), trees = 500) %>% 
+#   set_engine("ranger", num.threads = cores) %>% 
+#   set_mode("classification")
+# 
+# rf_recipe <- 
+#   recipe(Cluster ~ ., data = dat_other) 
+# 
+# rf_workflow <- 
+#   workflow() %>% 
+#   add_model(rf_mod) %>% 
+#   add_recipe(rf_recipe)
+# 
+# rf_mod
+# 
+# rf_mod %>%    
+#   parameters()  
+# 
+# set.seed(345)
+# rf_res <- 
+#   rf_workflow %>% 
+#   tune_grid(val_set,
+#             grid = 45, # How do you chose this number?
+#             control = control_grid(save_pred = TRUE),
+#             metrics = metric_set(roc_auc))
+# 
+# rf_res %>% 
+#   show_best(metric = "roc_auc")
+# 
+# autoplot(rf_res)
+# 
+# rf_best <- 
+#   rf_res %>% 
+#   select_best(metric = "roc_auc")
+# rf_best
+# 
+# rf_res %>% 
+#   collect_predictions()
+# 
+# rf_auc <- 
+#   rf_res %>% 
+#   collect_predictions(parameters = rf_best) %>% 
+#   roc_curve(Cluster, `.pred_Class 1`) %>% 
+#   mutate(model = "Random Forest")
+# 
+# # the last model
+# last_rf_mod <- 
+#   rand_forest(mtry = 13, min_n = 35, trees = 500) %>% 
+#   set_engine("ranger", num.threads = cores, importance = "impurity") %>% 
+#   set_mode("classification")
+# 
+# # the last workflow
+# last_rf_workflow <- 
+#   rf_workflow %>% 
+#   update_model(last_rf_mod)
+# 
+# # the last fit
+# set.seed(345)
+# last_rf_fit <- 
+#   last_rf_workflow %>% 
+#   last_fit(splits)
+# 
+# last_rf_fit
+# 
+# last_rf_fit %>% 
+#   collect_metrics()
+# 
+# 
+# last_rf_fit %>% 
+#   pluck(".workflow", 1) %>%   
+#   pull_workflow_fit() %>% 
+#   vip(num_features = 47)
+# 
+# last_rf_fit %>% 
+#   collect_predictions() %>% 
+#   roc_curve(Cluster, `.pred_Class 1`) %>% 
+#   autoplot()
 
+
+# Cross Validation (10 fold) ####
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
-
+dat <- readRDS("attribute_tune_df.rds")
 # Now remove the SiteID and COMID so it isn't used by the RF model
 dat <- dat %>%
-  select(-c("SiteID", "COMID"))
+  select(-c("SiteID", "COMID")) # might not be necessary depending on which .rds file you use
 
 # Turn cluster into a factor
 sapply(dat, class)
 dat$Cluster <- as.factor(dat$Cluster)
 dat <- as_tibble(dat)
+# Might be able to get rid of this later
 levels(dat$Cluster) <- c(levels(dat$Cluster), "Class 1")
 levels(dat$Cluster) <- c(levels(dat$Cluster), "Class 2")
 dat$Cluster[dat$Cluster == "1"] <- "Class 1"
 dat$Cluster[dat$Cluster == "2"] <- "Class 2"
-dat$Cluster <- factor(dat$Cluster)
+dat$Cluster <- factor(dat$Cluster) # Get rid of unused factor levels
 
 # See distribution of clusters so we can ensure it will be the same in our training vs testing datasets
 dat %>% 
   count(Cluster) %>% 
-  mutate(prop = n/sum(n))
+  mutate(prop = n/sum(n)) # ~70/30
 
 # Split data into testing vs training datasets
 set.seed(123)
 splits      <- initial_split(dat, strata = Cluster)
 
-dat_other <- training(splits)
+dat_train <- training(splits)
 dat_test  <- testing(splits)
 
 # Check that we kept the distribution of clusters
-dat_other %>% 
+dat_train %>% 
   count(Cluster) %>% 
   mutate(prop = n/sum(n))
 
 dat_test  %>% 
   count(Cluster) %>% 
   mutate(prop = n/sum(n))
+# both still ~70/30
 
-
-set.seed(234)
-val_set <- validation_split(dat_other, 
-                            strata = Cluster, 
-                            prop = 0.80)
-val_set
-
-cores <- parallel::detectCores()
-cores
-
+# Create model
 rf_mod <- 
-  rand_forest(mtry = tune(), min_n = tune(), trees = 1000) %>% 
-  set_engine("ranger", num.threads = cores) %>% 
+  rand_forest(trees = 500) %>% 
+  set_engine("ranger") %>% 
   set_mode("classification")
 
-rf_recipe <- 
-  recipe(Cluster ~ ., data = dat_other) 
+# Fit model to training data
+set.seed(234)
+rf_fit <- 
+  rf_mod %>% 
+  fit(Cluster ~ ., data = dat_train)
+rf_fit
+# OOB 0.181
 
-rf_workflow <- 
-  workflow() %>% 
-  add_model(rf_mod) %>% 
-  add_recipe(rf_recipe)
+# Estimate model performance
+rf_training_pred <- 
+  predict(rf_fit, dat_train) %>% 
+  bind_cols(predict(rf_fit, dat_train, type = "prob")) %>% 
+  # Add the true outcome data back in
+  bind_cols(dat_train %>% 
+              select(Cluster))
 
-rf_mod
+rf_training_pred %>%                # training set predictions
+  roc_auc(truth = .pred_class, `.pred_Class 1`)
+rf_training_pred %>%                # training set predictions
+  accuracy(truth = .pred_class, .pred_class)
+# Too good to be true (bc we are evaluating it based on the training data it was fit to)
 
-rf_mod %>%    
-  parameters()  
+# Evaluate performance on test set
+rf_testing_pred <- 
+  predict(rf_fit, dat_test) %>% 
+  bind_cols(predict(rf_fit, dat_test, type = "prob")) %>% 
+  bind_cols(dat_test %>% select(Cluster))
 
+rf_testing_pred %>%                   # test set predictions
+  roc_auc(truth = .pred_class, `.pred_Class 1`)
+# Still really good??
+rf_testing_pred %>%                   # test set predictions
+  accuracy(truth = Cluster, .pred_class)
+# Went down a bit
+
+# Try cross validation
 set.seed(345)
-rf_res <- 
-  rf_workflow %>% 
-  tune_grid(val_set,
-            grid = 25,
-            control = control_grid(save_pred = TRUE),
-            metrics = metric_set(roc_auc))
+folds <- vfold_cv(dat_train, v = 10)
+folds
 
-rf_res %>% 
-  show_best(metric = "roc_auc")
+# Set up resampling
+rf_wf <- 
+  workflow() %>%
+  add_model(rf_mod) %>%
+  add_formula(Cluster ~ .)
 
-autoplot(rf_res)
+set.seed(456)
+rf_fit_rs <- 
+  rf_wf %>% 
+  fit_resamples(folds)
 
-rf_best <- 
-  rf_res %>% 
-  select_best(metric = "roc_auc")
-rf_best
+rf_fit_rs
 
-rf_res %>% 
-  collect_predictions()
-
-rf_auc <- 
-  rf_res %>% 
-  collect_predictions(parameters = rf_best) %>% 
-  roc_curve(Cluster, `.pred_Class 1`) %>% 
-  mutate(model = "Random Forest")
-
-# the last model
-last_rf_mod <- 
-  rand_forest(mtry = 10, min_n = 35, trees = 1000) %>% 
-  set_engine("ranger", num.threads = cores, importance = "impurity") %>% 
-  set_mode("classification")
-
-# the last workflow
-last_rf_workflow <- 
-  rf_workflow %>% 
-  update_model(last_rf_mod)
-
-# the last fit
-set.seed(345)
-last_rf_fit <- 
-  last_rf_workflow %>% 
-  last_fit(splits)
-
-last_rf_fit
-
-last_rf_fit %>% 
-  collect_metrics()
+collect_metrics(rf_fit_rs)
+# A tibble: 2 x 6
+# .metric  .estimator   mean     n   std_err .config             
+# <chr>     <chr>      <dbl>   <int>   <dbl>  <chr>               
+# 1 accuracy binary   0.741    10    0.0456  Preprocessor1_Model1
+# 2 roc_auc  binary   0.751    10    0.0575  Preprocessor1_Model1
 
 
-last_rf_fit %>% 
-  pluck(".workflow", 1) %>%   
-  pull_workflow_fit() %>% 
-  vip(num_features = 62)
 
-last_rf_fit %>% 
-  collect_predictions() %>% 
-  roc_curve(Cluster, `.pred_Class 1`) %>% 
-  autoplot()
+
+
+
+
+
+
 
 
 # BLOPIG TUTORIAL ##############################
