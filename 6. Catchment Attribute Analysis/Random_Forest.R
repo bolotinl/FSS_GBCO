@@ -43,7 +43,7 @@ dat_test  %>%
   mutate(prop = n/sum(n))
 # both still ~70/30
 
-# Create validation set #
+# Create validation set 
 set.seed(234)
 val_set <- validation_split(dat_other,
                             strata = Cluster,
@@ -53,6 +53,92 @@ val_set
 cores <- parallel::detectCores()
 cores
 
+# All predictors ####
+rf_mod <-
+  rand_forest(mtry = tune(), min_n = tune(), trees = 500) %>%
+  set_engine("ranger", num.threads = cores) %>%
+  set_mode("classification")
+rf_mod
+
+rf_recipe <-
+  recipe(Cluster ~ ., data = dat_other)
+
+rf_workflow <-
+  workflow() %>%
+  add_model(rf_mod) %>%
+  add_recipe(rf_recipe)
+
+rf_mod
+
+rf_mod %>%
+  parameters()
+
+set.seed(345)
+rf_res <-
+  rf_workflow %>%
+  tune_grid(val_set,
+            grid = 45, # How do you chose this number?
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(roc_auc))
+
+rf_res %>%
+  show_best(metric = "roc_auc")
+
+autoplot(rf_res)
+
+rf_best <-
+  rf_res %>%
+  select_best(metric = "roc_auc")
+rf_best
+
+rf_res %>%
+  collect_predictions()
+
+rf_auc <-
+  rf_res %>%
+  collect_predictions(parameters = rf_best) %>%
+  roc_curve(Cluster, .pred_1) %>%
+  mutate(model = "Random Forest")
+
+# the last model
+last_rf_mod <-
+  rand_forest(mtry = 17, min_n = 35, trees = 500) %>%
+  set_engine("ranger", num.threads = cores, importance = "impurity") %>%
+  set_mode("classification")
+
+# the last workflow
+last_rf_workflow <-
+  rf_workflow %>%
+  update_model(last_rf_mod)
+
+# the last fit
+set.seed(345)
+last_rf_fit <-
+  last_rf_workflow %>%
+  last_fit(splits)
+
+last_rf_fit
+
+last_rf_fit %>%
+  collect_metrics()
+# A tibble: 2 x 4
+# .metric   .estimator     .estimate .config             
+# <chr>     <chr>          <dbl>     <chr>               
+# 1 accuracy binary         0.787    Preprocessor1_Model1
+# 2 roc_auc  binary         0.828    Preprocessor1_Model1
+
+last_rf_fit %>%
+  pluck(".workflow", 1) %>%
+  pull_workflow_fit() %>%
+  vip(num_features = 62) #num_features doesn't have to be all of them. It will show the top *num_features value you set* features.
+
+last_rf_fit %>%
+  collect_predictions() %>%
+  roc_curve(Cluster, .pred_1) %>%
+  autoplot()
+
+
+# Fewer predictors and land use not combined ####
 rf_mod <-
   rand_forest(mtry = tune(), min_n = tune(), trees = 500) %>%
   set_engine("ranger", num.threads = cores) %>%
@@ -100,7 +186,7 @@ rf_auc <-
 
 # the last model
 last_rf_mod <-
-  rand_forest(mtry = 18, min_n = 36, trees = 500) %>%
+  rand_forest(mtry = 5, min_n = 7, trees = 500) %>%
   set_engine("ranger", num.threads = cores, importance = "impurity") %>%
   set_mode("classification")
 
@@ -119,55 +205,109 @@ last_rf_fit
 
 last_rf_fit %>%
   collect_metrics()
-
+# A tibble: 2 x 4
+# .metric    .estimator     .estimate .config             
+# <chr>        <chr>          <dbl>    <chr>               
+# 1 accuracy  binary         0.770    Preprocessor1_Model1
+# 2 roc_auc   binary         0.749    Preprocessor1_Model1
 
 last_rf_fit %>%
   pluck(".workflow", 1) %>%
   pull_workflow_fit() %>%
-  vip(num_features = 10) #num_features doesn't have to be all of them. It will show the top *num_features value you set* features.
+  vip(num_features = 62) #num_features doesn't have to be all of them. It will show the top *num_features value you set* features.
 
 last_rf_fit %>%
   collect_predictions() %>%
   roc_curve(Cluster, .pred_1) %>%
   autoplot()
 
-# MODEL PERFORMANCE:
-# All variables (first try). These seem pretty good compared to other numbers of trees (200, 600, 800)
-# mtry = 17, min_n = 35, trees = 500, 
+
+# Fewer predictors and land use combined ####
+rf_mod <-
+  rand_forest(mtry = tune(), min_n = tune(), trees = 500) %>%
+  set_engine("ranger", num.threads = cores) %>%
+  set_mode("classification")
+
+rf_recipe <-
+  recipe(Cluster ~ ., data = dat_other)
+
+rf_workflow <-
+  workflow() %>%
+  add_model(rf_mod) %>%
+  add_recipe(rf_recipe)
+
+rf_mod
+
+rf_mod %>%
+  parameters()
+
+set.seed(345)
+rf_res <-
+  rf_workflow %>%
+  tune_grid(val_set,
+            grid = 45, # How do you chose this number?
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(roc_auc))
+
+rf_res %>%
+  show_best(metric = "roc_auc")
+
+autoplot(rf_res)
+
+rf_best <-
+  rf_res %>%
+  select_best(metric = "roc_auc")
+rf_best
+
+rf_res %>%
+  collect_predictions()
+
+rf_auc <-
+  rf_res %>%
+  collect_predictions(parameters = rf_best) %>%
+  roc_curve(Cluster, .pred_1) %>%
+  mutate(model = "Random Forest")
+
+# the last model
+last_rf_mod <-
+  rand_forest(mtry = 6, min_n = 2, trees = 500) %>%
+  set_engine("ranger", num.threads = cores, importance = "impurity") %>%
+  set_mode("classification")
+
+# the last workflow
+last_rf_workflow <-
+  rf_workflow %>%
+  update_model(last_rf_mod)
+
+# the last fit
+set.seed(345)
+last_rf_fit <-
+  last_rf_workflow %>%
+  last_fit(splits)
+
+last_rf_fit
+
+last_rf_fit %>%
+  collect_metrics()
 # A tibble: 2 x 4
-# .metric  .estimator      .estimate .config             
-# <chr>    <chr>             <dbl>  <chr>               
-# 1 accuracy binary         0.787   Preprocessor1_Model1
-# 2 roc_auc  binary         0.828   Preprocessor1_Model1
+# .metric     .estimator    .estimate .config             
+# <chr>        <chr>          <dbl>   <chr>               
+# 1 accuracy  binary         0.754   Preprocessor1_Model1
+# 2 roc_auc   binary         0.762   Preprocessor1_Model1
 
-# Now try after getting rid of some variables
-# Less variables
-# mtry = 12, min_n = 39, trees = 500
-# A tibble: 2 x 4
-# .metric    .estimator     .estimate .config             
-# <chr>      <chr>          <dbl>     <chr>               
-# 1 accuracy binary         0.738    Preprocessor1_Model1
-# 2 roc_auc  binary         0.817    Preprocessor1_Model1
+last_rf_fit %>%
+  pluck(".workflow", 1) %>%
+  pull_workflow_fit() %>%
+  vip(num_features = 62) #num_features doesn't have to be all of them. It will show the top *num_features value you set* features.
 
-
-
+last_rf_fit %>%
+  collect_predictions() %>%
+  roc_curve(Cluster, .pred_1) %>%
+  autoplot()
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Validation Set ####
+# Validation Set #
 # setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # dat <- readRDS("attribute_df.rds")
 # dat <- readRDS("attribute_tune_df.rds")
@@ -342,7 +482,7 @@ dat_test  %>%
 # Create model
 rf_mod <- 
   rand_forest(trees = 500) %>% 
-  set_engine("ranger") %>% 
+  set_engine("ranger", importance = "impurity") %>% 
   set_mode("classification")
 
 # Fit model to training data
@@ -350,8 +490,25 @@ set.seed(234)
 rf_fit <- 
   rf_mod %>% 
   fit(Cluster ~ ., data = dat_train)
+
 rf_fit
-# OOB 0.181
+# parsnip model object
+# 
+# Fit time:  121ms 
+# Ranger result
+# 
+# Call:
+#   ranger::ranger(x = maybe_data_frame(x), y = y, num.trees = ~500,      num.threads = 1, verbose = FALSE, seed = sample.int(10^5,          1), probability = TRUE) 
+# 
+# Type:                             Probability estimation 
+# Number of trees:                  500 
+# Sample size:                      184 
+# Number of independent variables:  62 
+# Mtry:                             7 
+# Target node size:                 10 
+# Variable importance mode:         none 
+# Splitrule:                        gini 
+# OOB prediction error (Brier s.):  0.1820289 
 
 # Estimate model performance
 rf_training_pred <- 
@@ -375,7 +532,7 @@ rf_testing_pred <-
 
 rf_testing_pred %>%                   # test set predictions
   roc_auc(truth = .pred_class, `.pred_Class 1`)
-# Still really good??
+# Still really good?? = 1
 rf_testing_pred %>%                   # test set predictions
   accuracy(truth = Cluster, .pred_class)
 # Went down a bit
@@ -391,7 +548,7 @@ rf_wf <-
   add_model(rf_mod) %>%
   add_formula(Cluster ~ .)
 
-set.seed(456)
+set.seed(456) # results still change?
 rf_fit_rs <- 
   rf_wf %>% 
   fit_resamples(folds)
@@ -402,9 +559,18 @@ collect_metrics(rf_fit_rs)
 # A tibble: 2 x 6
 # .metric  .estimator   mean     n   std_err .config             
 # <chr>     <chr>      <dbl>   <int>   <dbl>  <chr>               
-# 1 accuracy binary   0.741    10    0.0456  Preprocessor1_Model1
-# 2 roc_auc  binary   0.751    10    0.0575  Preprocessor1_Model1
+# 1 accuracy binary   0.713    10    0.0456  Preprocessor1_Model1
+# 2 roc_auc  binary   0.766    10    0.0593  Preprocessor1_Model1
 
+rf_fit_rs %>%
+  pluck(".workflow", 1) %>%
+  pull_workflow_fit() %>%
+  vip(num_features = 10) #num_features doesn't have to be all of them. It will show the top *num_features value you set* features.
+
+rf_fit_rs %>%
+  collect_predictions() %>%
+  roc_curve(Cluster, .pred_1) %>%
+  autoplot()
 
 
 
@@ -504,7 +670,7 @@ mtry <- tuneRF(dat[-1],dat$Cluster, ntreeTry=500,
 best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
 print(mtry)
 print(best.m)
-rf <-randomForest(Cluster~.,data=dat, ntree=500, importance = TRUE, mtry = 4)
+rf <-randomForest(Cluster~.,data=dat, ntree=500, importance = TRUE, mtry = 7)
 print(rf)
 
 # It's really weird that three mtry values would have the same OOB, but let's keep it at 7 for now

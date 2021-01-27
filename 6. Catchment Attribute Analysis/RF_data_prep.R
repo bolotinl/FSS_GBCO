@@ -78,6 +78,7 @@ saveRDS(dat, "attribute_df.rds")
 names(dat)
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
+dat <- dat[-c(dat$SiteID == "USGS-10312210"), ]
 
 dat <- dat %>%
   select(-c("SiteID", "COMID"))
@@ -97,7 +98,7 @@ dat <- dat %>%
 
 # Look at correlations between variables
 check_cor <- 
-  cor(dat[,-1], use = "everything", method = "pearson")
+  cor(dat[,-1], use = "pairwise.complete.obs", method = "pearson")
 
 cor_high <-
   check_cor %>% 
@@ -106,6 +107,7 @@ cor_high <-
   subset(abs(value) > 0.9) %>% 
   dplyr::distinct() %>% 
   dplyr::arrange(Var1, Var2)
+# This provides two rows per highly correlated pair of predictors
 
 # Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
 dat <- dat %>%
@@ -114,7 +116,7 @@ dat <- dat %>%
             "BR_Intermediate", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013"))
 
 
-saveRDS(dat, "attribute_tune_df.rds") # NOT CURRENT
+saveRDS(dat, "attribute_tune_df.rds") # CURRENT
 
 # Screw around with removing some other stuff and see what happens
 # Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
@@ -123,4 +125,4 @@ dat <- dat %>%
             "BR_Quarternary","BR_Sedimentary","BR_Volcanic", "BR_Anorthositic",        
             "BR_Intermediate", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013", "Salinity", "pH", "Thickness", "Elevation_Min", "Elevation_Max"))
 
-saveRDS(dat, "attribute_tune_df.rds") # CURRENT
+saveRDS(dat, "attribute_tune_df.rds") # NOT CURRENT
