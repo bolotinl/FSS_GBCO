@@ -6,6 +6,8 @@ library(naniar)
 # Get data on cluster membership
 setwd("/Volumes/Blaszczak Lab/FSS/FSS_clustering")
 clust <- readRDS("cluster_results.rds")
+clust <- readRDS("cluster_results_4cl.rds")
+
 
 # Get the catchment attribute data
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
@@ -70,6 +72,9 @@ dat <- dat[-c(dat$SiteID == "USGS-10312210"), ]
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(dat, "attribute_df.rds")
 
+# setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+# saveRDS(dat, "attribute_df_4cl.rds")
+
 names(dat)
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
@@ -109,5 +114,13 @@ dat <- dat %>%
             "BR_Intermediate", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013"))
 
 
-saveRDS(dat, "attribute_tune_df.rds")
+saveRDS(dat, "attribute_tune_df.rds") # NOT CURRENT
 
+# Screw around with removing some other stuff and see what happens
+# Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
+dat <- dat %>%
+  select(-c("Stream_Slope", "Flowline_Length", "MIRAD_Irrig_Ag_Land_pct", "BR_Gneiss" ,"BR_Granitic", "BR_Ultramafic",          
+            "BR_Quarternary","BR_Sedimentary","BR_Volcanic", "BR_Anorthositic",        
+            "BR_Intermediate", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013", "Salinity", "pH", "Thickness", "Elevation_Min", "Elevation_Max"))
+
+saveRDS(dat, "attribute_tune_df.rds") # CURRENT

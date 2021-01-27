@@ -1,8 +1,9 @@
 # PREP ####
+library(tidyverse)
 # Bring df back in for RF 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
-dat <- readRDS("attribute_tune_df.rds")
+# dat <- readRDS("attribute_tune_df.rds")
 
 # Now remove the SiteID and COMID so it isn't used by the RF model
 dat <- dat %>%
@@ -12,58 +13,6 @@ dat <- dat %>%
 sapply(dat, class)
 dat$Cluster <- as.factor(dat$Cluster)
 
-# See what happens when we remove certain groups?
-
-# SIMPLIFIED VERSION #################################################################
-# Over simplified example:
-# Random Forest # following this tutorial: https://www.listendata.com/2014/11/random-forest-with-r.html#What-is-Random-Forest-
-
-# Run the RF model
-library(randomForest)
-set.seed(71)
-rf <-randomForest(Cluster~.,data=dat, ntree=500, importance = TRUE)
-print(rf)
-
-# Select mtry value with minimum out of bag(OOB) error.
-mtry <- tuneRF(dat[-1],dat$Cluster, ntreeTry=500,
-               stepFactor=1.5,improve=0.01, trace=TRUE, plot=TRUE)
-best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
-print(mtry)
-print(best.m)
-rf <-randomForest(Cluster~.,data=dat, ntree=500, importance = TRUE, mtry = 4)
-print(rf)
-
-# It's really weird that three mtry values would have the same OOB, but let's keep it at 7 for now
-
-importance <- importance(rf)
-varImpPlot(rf)
-
-pred1=predict(rf,type = "prob")
-library(ROCR)
-perf = prediction(pred1[,2], dat$Cluster)
-# 1. Area under curve
-auc = performance(perf, "auc")
-auc
-# 2. True Positive and Negative Rate
-pred3 = performance(perf, "tpr","fpr")
-# 3. Plot the ROC curve
-plot(pred3,main="ROC Curve for Random Forest",col=2,lwd=2)
-abline(a=0,b=1,lwd=2,lty=2,col="gray")
-
-# OOB = 23.27%
-
-
-
-
-
-
-
-
-
-
-
-
-
 # TIDY MODELS WORKFLOW MODELING #############################################################################################
 # Tidymodels workflow: 
 library(tidymodels) # for the rsample package, along with the rest of tidymodels
@@ -71,6 +20,153 @@ library(tidymodels) # for the rsample package, along with the rest of tidymodels
 # Helper packages
 library(ranger)
 library(vip)
+
+# See distribution of clusters so we can ensure it will be the same in our training vs testing datasets
+dat %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n)) # ~70/30
+
+# Split data into testing vs training datasets
+set.seed(123)
+splits      <- initial_split(dat, strata = Cluster)
+
+dat_other <- training(splits)
+dat_test  <- testing(splits)
+
+# Check that we kept the distribution of clusters
+dat_other %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n))
+
+dat_test  %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n))
+# both still ~70/30
+
+# Create validation set #
+set.seed(234)
+val_set <- validation_split(dat_other,
+                            strata = Cluster,
+                            prop = 0.80)
+val_set
+
+cores <- parallel::detectCores()
+cores
+
+rf_mod <-
+  rand_forest(mtry = tune(), min_n = tune(), trees = 500) %>%
+  set_engine("ranger", num.threads = cores) %>%
+  set_mode("classification")
+
+rf_recipe <-
+  recipe(Cluster ~ ., data = dat_other)
+
+rf_workflow <-
+  workflow() %>%
+  add_model(rf_mod) %>%
+  add_recipe(rf_recipe)
+
+rf_mod
+
+rf_mod %>%
+  parameters()
+
+set.seed(345)
+rf_res <-
+  rf_workflow %>%
+  tune_grid(val_set,
+            grid = 45, # How do you chose this number?
+            control = control_grid(save_pred = TRUE),
+            metrics = metric_set(roc_auc))
+
+rf_res %>%
+  show_best(metric = "roc_auc")
+
+autoplot(rf_res)
+
+rf_best <-
+  rf_res %>%
+  select_best(metric = "roc_auc")
+rf_best
+
+rf_res %>%
+  collect_predictions()
+
+rf_auc <-
+  rf_res %>%
+  collect_predictions(parameters = rf_best) %>%
+  roc_curve(Cluster, .pred_1) %>%
+  mutate(model = "Random Forest")
+
+# the last model
+last_rf_mod <-
+  rand_forest(mtry = 18, min_n = 36, trees = 500) %>%
+  set_engine("ranger", num.threads = cores, importance = "impurity") %>%
+  set_mode("classification")
+
+# the last workflow
+last_rf_workflow <-
+  rf_workflow %>%
+  update_model(last_rf_mod)
+
+# the last fit
+set.seed(345)
+last_rf_fit <-
+  last_rf_workflow %>%
+  last_fit(splits)
+
+last_rf_fit
+
+last_rf_fit %>%
+  collect_metrics()
+
+
+last_rf_fit %>%
+  pluck(".workflow", 1) %>%
+  pull_workflow_fit() %>%
+  vip(num_features = 10) #num_features doesn't have to be all of them. It will show the top *num_features value you set* features.
+
+last_rf_fit %>%
+  collect_predictions() %>%
+  roc_curve(Cluster, .pred_1) %>%
+  autoplot()
+
+# MODEL PERFORMANCE:
+# All variables (first try). These seem pretty good compared to other numbers of trees (200, 600, 800)
+# mtry = 17, min_n = 35, trees = 500, 
+# A tibble: 2 x 4
+# .metric  .estimator      .estimate .config             
+# <chr>    <chr>             <dbl>  <chr>               
+# 1 accuracy binary         0.787   Preprocessor1_Model1
+# 2 roc_auc  binary         0.828   Preprocessor1_Model1
+
+# Now try after getting rid of some variables
+# Less variables
+# mtry = 12, min_n = 39, trees = 500
+# A tibble: 2 x 4
+# .metric    .estimator     .estimate .config             
+# <chr>      <chr>          <dbl>     <chr>               
+# 1 accuracy binary         0.738    Preprocessor1_Model1
+# 2 roc_auc  binary         0.817    Preprocessor1_Model1
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Validation Set ####
 # setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # dat <- readRDS("attribute_df.rds")
@@ -391,3 +487,50 @@ for (i in 1:3)
   auc.perf <- performance(pred, measure = "auc")
   print(auc.perf@y.values)
 }
+
+# SIMPLIFIED VERSION #################################################################
+# Over simplified example:
+# Random Forest # following this tutorial: https://www.listendata.com/2014/11/random-forest-with-r.html#What-is-Random-Forest-
+
+# Run the RF model
+library(randomForest)
+set.seed(71)
+rf <-randomForest(Cluster~.,data=dat, ntree=500, importance = TRUE)
+print(rf)
+
+# Select mtry value with minimum out of bag(OOB) error.
+mtry <- tuneRF(dat[-1],dat$Cluster, ntreeTry=500,
+               stepFactor=1.5,improve=0.01, trace=TRUE, plot=TRUE)
+best.m <- mtry[mtry[, 2] == min(mtry[, 2]), 1]
+print(mtry)
+print(best.m)
+rf <-randomForest(Cluster~.,data=dat, ntree=500, importance = TRUE, mtry = 4)
+print(rf)
+
+# It's really weird that three mtry values would have the same OOB, but let's keep it at 7 for now
+
+importance <- importance(rf)
+varImpPlot(rf)
+
+pred1=predict(rf,type = "prob")
+library(ROCR)
+perf = prediction(pred1[,2], dat$Cluster)
+# 1. Area under curve
+auc = performance(perf, "auc")
+auc
+# 2. True Positive and Negative Rate
+pred3 = performance(perf, "tpr","fpr")
+# 3. Plot the ROC curve
+plot(pred3,main="ROC Curve for Random Forest",col=2,lwd=2)
+abline(a=0,b=1,lwd=2,lty=2,col="gray")
+
+# OOB = 23.27%
+
+
+
+
+
+
+
+
+
