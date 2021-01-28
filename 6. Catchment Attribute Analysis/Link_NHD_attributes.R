@@ -2,6 +2,7 @@
 ## Link project data with land cover, geology, etc. via NHD ComID (Wieczorek & Schwarz 2019)
 # NOTE re GBCO data: there are still some WQP sites without a ComID (13 of them)
 library(tidyverse)
+library(naniar)
 ## WUS DATA: ##################################################################################
 ## Bring in files that have SiteID's and ComID's
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
@@ -350,6 +351,65 @@ setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(usgs_soil, "WUS_USGS_Soil_Layer_Attributes.rds")
 saveRDS(usgs_soil, "WUS_UNM_USGS_Soil_Layer_Attributes.rds")
 rm(usgs_soil, soil_acc)
+
+# National Atmospheric Deposition Program National Trends Network 
+# Bring in data for each year available (1985-2014)
+setwd("/Volumes/Blaszczak Lab/FSS/NHD Attributes/Atmospheric Deposition") 
+years <- seq(1985, 2014)
+
+# Subset the NADP data files so they are smaller and easier to work with in R
+subset_NADP <- function(x){
+nadp1 <- read.csv(paste0("NADP_", x, "_CONUS.csv"))
+nadp1 <- nadp1 %>%
+  select(c("COMID",paste0("ACC_DEP_CA_", x), paste0("ACC_DEP_MG_", x), paste0("ACC_DEP_SO4_", x)))
+head(nadp1)
+
+# Subset NLCD by our sites of interest
+nadp1 <- subset(nadp1, nadp1$COMID %in% usgs_comid$COMID) # the number of rows should be = to the number of rows in usgs_comid
+# Create one df with all necessary info
+usgs_nadp <- merge(usgs_comid, nadp1, by = "COMID", all = TRUE)
+# Rename columns to describe land use classes
+names(usgs_nadp)
+colnames(usgs_nadp) <- c("COMID", "SiteID", paste0("NADP_CA_", x), paste0("NADP_MG_", x), paste0("NADP_SO4_", x))
+## Save output
+saveRDS(usgs_nadp, paste0("WUS_UNM_USGS_NADP_", x, ".rds"))
+rm(nadp1, usgs_nadp)
+}
+
+# x <- 2000 # test it out for one year
+subset_NADP(x)
+
+lapply(years, subset_NADP)
+rm(years, subset_NADP)
+
+(temp <-  list.files(pattern="*.rds"))
+myfiles <-  lapply(temp, readRDS)
+nadp <- bind_cols(myfiles)
+nadp <- rename(nadp, COMID = COMID...1)
+nadp <- rename(nadp, SiteID = SiteID...2)
+nadp <- nadp %>% select(-contains(".."))
+nadp <- nadp %>% replace_with_na_all(condition = ~.x == -9999.00)
+
+
+nadp_mg <- nadp %>% select(c("COMID", "SiteID", contains("MG_")))
+nadp_mg <- nadp_mg %>% mutate(mean_MG = rowMeans(nadp_mg[3:32], na.rm = TRUE))
+
+nadp_ca <- nadp %>% select(c("COMID", "SiteID", contains("CA_")))
+nadp_ca <- nadp_ca %>% mutate(mean_CA = rowMeans(nadp_ca[3:32], na.rm = TRUE))
+
+nadp_so4 <- nadp %>% select(c("COMID", "SiteID", contains("SO4_")))
+nadp_so4 <- nadp_so4 %>% mutate(mean_SO4 = rowMeans(nadp_so4[3:32], na.rm = TRUE))
+
+nadp <- nadp %>% select(c("COMID", "SiteID"))
+
+nadp$NADP_CA <- nadp_ca$mean_CA
+nadp$NADP_MG <- nadp_mg$mean_MG
+nadp$NADP_SO4 <- nadp_so4$mean_SO4
+
+rm(myfiles, nadp_ca, nadp_mg, nadp_so4, temp)
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+saveRDS(nadp, "WUS_UNM_USGS_Atmospheric_Dep.rds")
+rm(nadp)
 
 # CONCATENATE DATA FRAMES ####
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
