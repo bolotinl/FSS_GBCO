@@ -409,6 +409,7 @@ nadp$NADP_SO4 <- nadp_so4$mean_SO4
 rm(myfiles, nadp_ca, nadp_mg, nadp_so4, temp)
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(nadp, "WUS_UNM_USGS_Atmospheric_Dep.rds")
+write.csv(nadp, "WUS_UNM_USGS_Atmospheric_Dep.csv")
 rm(nadp)
 
 # CONCATENATE DATA FRAMES ####
