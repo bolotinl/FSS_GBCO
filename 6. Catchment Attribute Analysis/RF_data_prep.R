@@ -17,6 +17,7 @@ land <- readRDS("WUS_UNM_USGS_Land_Use_Attributes.rds")
 phys <- readRDS("WUS_UNM_USGS_Physiographic_Attributes.rds")
 soil <- readRDS("WUS_UNM_USGS_Soil_Attributes.rds")
 clim <- readRDS("WUS_UNM_USGS_Water_Bal_Climate_Attributes.rds")
+atms <- readRDS("WUS_UNM_USGS_Atmospheric_Dep.rds")
 
 # Subset attribute data for stuff we actually want to use
 # We only need one of the attribute data frames to include COMID
@@ -40,6 +41,10 @@ names(soil)
 soil <- soil %>%
   select(-c("Texture_NoData", "pH_NoData", "Salinity_NoData", "COMID"))
 
+names(atms)
+atms <- atms %>% 
+  select(-c("COMID"))
+
 names(clim)
 # We have two different sources from which we got data on the percent of precipitation that falls as snow
 # Try one and then try the other
@@ -55,8 +60,9 @@ dat <- merge(dat, hydro, by = "SiteID")
 dat <- merge(dat, land, by = "SiteID")
 dat <- merge(dat, phys, by = "SiteID")
 dat <- merge(dat, soil, by = "SiteID")
+dat <- merge(dat, atms, by = "SiteID")
 
-rm(clim, clust, geol, hydro, land, phys, soil)
+rm(clim, clust, geol, hydro, land, phys, soil, atms)
 
 names(dat)
 
@@ -64,13 +70,25 @@ names(dat)
 # One site has no attribute data so it will need to be removed from the clusters
 # For now we will set the data to NA
 # dat <- dat %>% replace_with_na_all(condition = ~.x == -9999) # USGS-10312210
+# 
+# dat$SiteID <- as.factor(dat$SiteID)
+# levels(dat$SiteID)
+# # Actually, remove
+# dat <- dat[-c(dat$SiteID == "USGS-10312210"), ]
+# dat$SiteID <- factor(dat$SiteID)
+# levels(dat$SiteID)
+# dat <- dat[-c(dat$SiteID == "USGS-10312210"), ]
+# dat$SiteID <- factor(dat$SiteID)
+# levels(dat$SiteID)
 
-# Actually, remove
-dat <- dat[-c(dat$SiteID == "USGS-10312210"), ]
+dat <- subset(dat, dat$SiteID != "USGS-10312210")
+dat$SiteID <- factor(dat$SiteID)
+
 
 # Save a data frame that will help us keep track of the SiteID, Cluster, COMID
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(dat, "attribute_df.rds")
+saveRDS(dat, "attribute_df_add_nadp.rds")
 
 # setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # saveRDS(dat, "attribute_df_4cl.rds")
@@ -108,6 +126,9 @@ cor_high <-
   dplyr::distinct() %>% 
   dplyr::arrange(Var1, Var2)
 # This provides two rows per highly correlated pair of predictors
+getwd()
+saveRDS(check_cor, "corr_matrix_all_attributes.rds")
+saveRDS(cor_high, "corr_high_all_attributes.rds")
 
 # Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
 dat <- dat %>%
