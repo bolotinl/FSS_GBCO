@@ -4,6 +4,7 @@ library(tidyverse)
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
 # dat <- readRDS("attribute_tune_df.rds")
+# dat <- readRDS("attribute_df_add_nadp.rds")
 
 # Now remove the SiteID and COMID so it isn't used by the RF model
 dat <- dat %>%
@@ -102,7 +103,7 @@ rf_auc <-
 
 # the last model
 last_rf_mod <-
-  rand_forest(mtry = 17, min_n = 35, trees = 500) %>%
+  rand_forest(mtry = 21, min_n = 39, trees = 500) %>%
   set_engine("ranger", num.threads = cores, importance = "impurity") %>%
   set_mode("classification")
 
@@ -126,6 +127,13 @@ last_rf_fit %>%
 # <chr>     <chr>          <dbl>     <chr>               
 # 1 accuracy binary         0.787    Preprocessor1_Model1
 # 2 roc_auc  binary         0.828    Preprocessor1_Model1
+
+# with Atmospheric Deposition added:
+# A tibble: 2 x 4
+# .metric     .estimator    .estimate .config             
+# <chr>       <chr>          <dbl>     <chr>               
+# 1 accuracy  binary         0.770     Preprocessor1_Model1
+# 2 roc_auc   binary         0.807     Preprocessor1_Model1
 
 last_rf_fit %>%
   pluck(".workflow", 1) %>%
