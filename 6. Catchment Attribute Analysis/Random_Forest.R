@@ -5,6 +5,7 @@ setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
 # dat <- readRDS("attribute_tune_df.rds")
 # dat <- readRDS("attribute_df_add_nadp.rds")
+# dat <- readRDS("attribute_df_4cl.rds")
 
 # Now remove the SiteID and COMID so it isn't used by the RF model
 dat <- dat %>%
@@ -700,11 +701,129 @@ abline(a=0,b=1,lwd=2,lty=2,col="gray")
 
 # OOB = 23.27%
 
+#################################################################################
+# https://www.youtube.com/watch?v=dJclNIN-TPo
+library(randomForest)
+set.seed(123)
+
+dat %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n)) # ~70/30
+
+# Split data into testing vs training datasets
+set.seed(123)
+splits      <- initial_split(dat, strata = Cluster)
+
+train <- training(splits)
+test  <- testing(splits)
+
+# Check that we kept the distribution of clusters
+train %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n))
+
+test  %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n))
+# both still ~70/30
+
+# split data with stratification
+set.seed(222)
+rf <- randomForest(Cluster ~., data = train) # assumes classification if dependent variable is a factor
+print(rf)
+# OOB 27.17
+# OOB for 4 clusters 34.59
+
+# default mtry is sqrt(p) where p = number of predictors
+# prints OOB (accuracy is 100 - OOB) and confusion matrix (shows which classes have the most error in prediction)
+attributes(rf)
+rf$confusion
+# rf$whatever attribute you want to look at
+
+library(caret)
+p1 <- predict(rf, train)
+confusionMatrix(p1, train$Cluster)
+# gives confusion matrix
+# gives accuracy, 95% confidence interval (closer values are better)
+# statistics by class
+# this model has already seen all the data, hence mismatch in previous OOB and accuracy
+
+p2 <- predict(rf, test)
+confusionMatrix(p2, test$Cluster)
+# accuracy comes down a bit
 
 
+# error rate
+plot(rf)
+# as ntree grows, OOB is on y axis
 
+# model tuning
+# t <- tuneRF(train[,-index for Cluster], train[,index for Cluster],
+#        stepFactor = 1,
+#        plot = TRUE,
+#        ntreeTry = 300, # looking at plot(rf), we see that we can't improve our OOB after 300 trees, so that is why we picked this value
+#        trace = TRUE,
+#        improve = 0.05)
 
+t <- tuneRF(train[,-1], train[,1],
+            stepFactor = 0.5,
+            plot = TRUE,
+            ntreeTry = 300, # looking at plot(rf), we see that we can't improve our OOB after 300 trees, so that is why we picked this value
+            trace = TRUE,
+            improve = 0.05)
 
+# if it doesn't search very much, try smaller stepFactor, i.e. 0.5
+# gives info on what mtry value to use
+
+# go back to rf model
+rf <- randomForest(Cluster~., data = train,
+                   ntree = 300, 
+                   mtry =14, 
+                   importance = TRUE,
+                   proximity = TRUE) # seems optional?
+print(rf)
+# OOB went up for some reason?
+# OOB for 4 clusters didn't change
+
+# error should change
+# classification error should change for each class
+# you can go through p1 and p2 again
+# accuracy of p2 should have improved slightly
+
+# not sure what this is important for
+# No. of nodes for the 300 trees
+hist(treesize(rf),
+     main = "No. of Nodes for the Trees",
+     col = "blue")
+
+# variable importance
+varImpPlot(rf)
+# MeanDecreaseAccuracy, how does this variable contribute to the accuracy of the model
+# MeanDecreaseGini, Gini is a measure of node purity, how does this variable contribute to node purity, 
+# can make some plot specifications
+varImpPlot(rf,
+           sort = T,
+           n.var = 10, # number of variables to show
+           main = "Plot Title")
+
+importance(rf) # gives values for importance
+
+varUsed(rf) # which predictors are actually used in the rf? you get a value for each variable for how many times it was used
+# should align with importance
+
+# partial dependence plot, shows marginal effect of a vriable on the class probability for classification
+partialPlot(rf, train, variable of interest, "class of interest")
+partialPlot(rf, train, OpenWater_pct, "2")
+# for a spectrum of values for that variable, for which part of the spectrum does it tend to predict each class most strongly?
+# for a class with less accuracy and higher confusion, you may be able to see that in these plots
+
+# not sure why we would need to do this
+getTree(rf, 
+        1, # which tree? 1 is the first
+        labelVar = TRUE)
+
+# multi dimensional scaling plot of proximity matrix
+MDFplot(rf, train$Cluster)
 
 
 

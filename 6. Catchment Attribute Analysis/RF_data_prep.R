@@ -7,6 +7,7 @@ library(naniar)
 setwd("/Volumes/Blaszczak Lab/FSS/FSS_clustering")
 clust <- readRDS("cluster_results.rds")
 clust <- readRDS("cluster_results_4cl.rds")
+clust <- readRDS("cluster_results_2cl_SC.rds")
 
 
 # Get the catchment attribute data
