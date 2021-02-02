@@ -9,12 +9,17 @@ library(data.table)
 library(beepr)
 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-disch_huc_sites <- readRDS("WUS_USGS_disch_sites.rds") # all lotic disch sites in the western US
-SC_huc_sites <- readRDS("WUS_USGS_SC_sites.rds") # all lotic SC sites in the western US
-both_huc_sites <- readRDS("WUS_USGS_disch_SC_sites.rds") # all lotic sites with both disch and SC in the western US
+disch_huc_sites <- readRDS("USA_USGS_disch_sites.rds") # all lotic disch sites in the western US
+SC_huc_sites <- readRDS("USA_USGS_SC_sites.rds") # all lotic SC sites in the western US
+both_huc_sites <- readRDS("USA_USGS_disch_SC_sites.rds") # all lotic sites with both disch and SC in the western US
 
-setdiff(SC_huc_sites$Site_ID, disch_huc_sites$Site_ID) # 252 sites with SC and not Q. Ignore these for now. 
-levels(both_huc_sites$Site_ID) # 828 sites with both SC and Q
+# disch_huc_sites <- readRDS("WUS_USGS_disch_sites.rds") # all lotic disch sites in the western US
+# SC_huc_sites <- readRDS("WUS_USGS_SC_sites.rds") # all lotic SC sites in the western US
+# both_huc_sites <- readRDS("WUS_USGS_disch_SC_sites.rds") # all lotic sites with both disch and SC in the western US
+
+setdiff(SC_huc_sites$Site_ID, disch_huc_sites$Site_ID) # 736 (252 WUS) sites with SC and not Q. Ignore these for now. 
+both_huc_sites$Site_ID <- factor(both_huc_sites$Site_ID)
+levels(both_huc_sites$Site_ID) # 1,956 (828 WUS) sites with both SC and Q
 # For now, for the entire Western US, lets ONLY use sites with BOTH discharge and SC
 
 #parameter codes: 00060 -discharge ---- 00095 & 0094 -specific conductance
@@ -23,12 +28,14 @@ levels(both_huc_sites$Site_ID) # 828 sites with both SC and Q
 #------------------------------
 # Download daily value (dv) discharge data ####
 #------------------------------
+# Subset, since we already downloaded data for HUC regions 10-18 we don't want to do it again
+both_huc_sites <- subset(both_huc_sites, both_huc_sites$huc_cd < 10000000)
 both_huc_sites$Site_ID <- as.numeric(as.character(both_huc_sites$Site_ID))
 both_huc_sites$Site_ID <- ifelse(both_huc_sites$Site_ID < 1e7,
                                   yes = paste("0", both_huc_sites$Site_ID, sep=""),
                                   no = paste(both_huc_sites$Site_ID))
 siteNumber <- both_huc_sites %>% pull(Site_ID) 
-siteNumber <- unique(siteNumber) # 828
+siteNumber <- unique(siteNumber) # 1,128 (828 WUS)
 
 parameterCd <- "00060"
 startDate <- ""  
@@ -39,27 +46,48 @@ discharge <- readNWISdv(siteNumber[1:125],
                         parameterCd, startDate, endDate)
 discharge1 <- readNWISdv(siteNumber[126:250], 
                         parameterCd, startDate, endDate)
-discharge2 <- readNWISdv(siteNumber[251:375], 
+discharge2 <- readNWISdv(siteNumber[251:275], 
                         parameterCd, startDate, endDate)
-discharge3 <- readNWISdv(siteNumber[375:500], 
+discharge3 <- readNWISdv(siteNumber[276:375], 
                         parameterCd, startDate, endDate)
-saveRDS(discharge, "WUS_USGS_disch_data.rds")
-saveRDS(discharge1, "WUS_USGS_disch1_data.rds")
-saveRDS(discharge2, "WUS_USGS_disch2_data.rds")
-saveRDS(discharge3, "WUS_USGS_disch3_data.rds")
+beep()
+saveRDS(discharge, "USA_USGS_disch_data.rds")
+saveRDS(discharge1, "USA_USGS_disch1_data.rds")
+saveRDS(discharge2, "USA_USGS_disch2_data.rds")
+saveRDS(discharge3, "USA_USGS_disch3_data.rds")
+# saveRDS(discharge, "WUS_USGS_disch_data.rds")
+# saveRDS(discharge1, "WUS_USGS_disch1_data.rds")
+# saveRDS(discharge2, "WUS_USGS_disch2_data.rds")
+# saveRDS(discharge3, "WUS_USGS_disch3_data.rds")
 rm(discharge, discharge1, discharge2, discharge3)
 
-discharge4 <- readNWISdv(siteNumber[501:625], 
+discharge4 <- readNWISdv(siteNumber[376:450], 
                          parameterCd, startDate, endDate)
-discharge5 <- readNWISdv(siteNumber[626:750], 
+discharge5 <- readNWISdv(siteNumber[451:600], 
                          parameterCd, startDate, endDate)
-discharge6 <- readNWISdv(siteNumber[751:828], 
+discharge6 <- readNWISdv(siteNumber[601:750], 
                          parameterCd, startDate, endDate)
-rm(discharge4, discharge5, discharge6)
+discharge7 <- readNWISdv(siteNumber[751:900], 
+                         parameterCd, startDate, endDate)
 
-saveRDS(discharge4, "WUS_USGS_disch4_data.rds")
-saveRDS(discharge5, "WUS_USGS_disch5_data.rds")
-saveRDS(discharge6, "WUS_USGS_disch6_data.rds")
+saveRDS(discharge4, "USA_USGS_disch4_data.rds")
+saveRDS(discharge5, "USA_USGS_disch5_data.rds")
+saveRDS(discharge6, "USA_USGS_disch6_data.rds")
+saveRDS(discharge7, "USA_USGS_disch7_data.rds")
+rm(discharge4, discharge5, discharge6, discharge7)
+
+discharge8 <- readNWISdv(siteNumber[901:1050], 
+                         parameterCd, startDate, endDate)
+discharge9 <- readNWISdv(siteNumber[1051:1128], 
+                         parameterCd, startDate, endDate)
+beep()
+
+saveRDS(discharge8, "USA_USGS_disch8_data.rds")
+saveRDS(discharge9, "USA_USGS_disch9_data.rds")
+rm(discharge8, discharge9)
+# saveRDS(discharge4, "WUS_USGS_disch4_data.rds")
+# saveRDS(discharge5, "WUS_USGS_disch5_data.rds")
+# saveRDS(discharge6, "WUS_USGS_disch6_data.rds")
 
 #------------------------------
 # Download water quality (qw) SC data (point measurements) ####
@@ -89,23 +117,31 @@ rm(SCqw, SCqw1, SCqw2, SCqw3)
 #------------------------------
 # Download daily value (dv) SC data ####
 #------------------------------
+parameterCd <- c("00095")
 siteNumber <- both_huc_sites$Site_ID[which(both_huc_sites$data_type_cd == "dv")]
 siteNumber <- unique(siteNumber)
-SCdv <- readNWISdv(siteNumber[1:125], parameterCd, 
+SCdv <- readNWISdv(siteNumber[1:150], parameterCd, 
                    startDate, endDate)
-SCdv1 <- readNWISdv(siteNumber[126:350], parameterCd, 
+SCdv1 <- readNWISdv(siteNumber[151:350], parameterCd, 
                     startDate, endDate)
-SCdv2 <- readNWISdv(siteNumber[351:700], parameterCd, 
+SCdv2 <- readNWISdv(siteNumber[351:500], parameterCd, 
                     startDate, endDate)
-SCdv3 <- readNWISdv(siteNumber[701:797], parameterCd, 
+SCdv3 <- readNWISdv(siteNumber[501:800], parameterCd, 
+                    startDate, endDate)
+SCdv4 <- readNWISdv(siteNumber[801:1119], parameterCd, 
                     startDate, endDate)
 # saveRDS(SCdv, "USGS_SC_dv_data.rds") # For GBCO data
-saveRDS(SCdv, "WUS_USGS_SC_dv_data.rds") # For WUS 00095 data
-saveRDS(SCdv1, "WUS_USGS_SC_dv1_data.rds")
-saveRDS(SCdv2, "WUS_USGS_SC_dv2_data.rds")
-saveRDS(SCdv3, "WUS_USGS_SC_dv3_data.rds")
+# saveRDS(SCdv, "WUS_USGS_SC_dv_data.rds") # For WUS 00095 data (00094 data is all qw)
+# saveRDS(SCdv1, "WUS_USGS_SC_dv1_data.rds")
+# saveRDS(SCdv2, "WUS_USGS_SC_dv2_data.rds")
+# saveRDS(SCdv3, "WUS_USGS_SC_dv3_data.rds")
+saveRDS(SCdv, "USA_USGS_SC_dv_data.rds") # For USA 00095 data
+saveRDS(SCdv1, "USA_USGS_SC_dv1_data.rds")
+saveRDS(SCdv2, "USA_USGS_SC_dv2_data.rds")
+saveRDS(SCdv3, "USA_USGS_SC_dv3_data.rds")
+saveRDS(SCdv4, "USA_USGS_SC_dv4_data.rds")
 
-rm(SCdv, SCdv1, SCdv2, SCdv3)
+rm(SCdv, SCdv1, SCdv2, SCdv3 ,SCdv4)
 #------------------------------
 # Download unit value (uv) SC data ####
 #------------------------------
