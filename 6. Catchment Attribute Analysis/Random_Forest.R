@@ -704,6 +704,23 @@ abline(a=0,b=1,lwd=2,lty=2,col="gray")
 #################################################################################
 # https://www.youtube.com/watch?v=dJclNIN-TPo
 library(randomForest)
+library(tidyverse)
+library(tidymodels)
+
+# Bring df back in for RF 
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+# dat <- readRDS("attribute_df.rds")
+# dat <- readRDS("attribute_tune_df.rds")
+dat <- readRDS("attribute_df_add_nadp.rds")
+# dat <- readRDS("attribute_df_4cl.rds")
+
+# Now remove the SiteID and COMID so it isn't used by the RF model
+dat <- dat %>%
+  select(-c("SiteID", "COMID"))
+
+# Turn cluster into a factor
+sapply(dat, class)
+dat$Cluster <- as.factor(dat$Cluster)
 set.seed(123)
 
 dat %>%
@@ -712,7 +729,7 @@ dat %>%
 
 # Split data into testing vs training datasets
 set.seed(123)
-splits      <- initial_split(dat, strata = Cluster)
+splits <- initial_split(dat, strata = Cluster)
 
 train <- training(splits)
 test  <- testing(splits)
@@ -729,13 +746,14 @@ test  %>%
 
 # split data with stratification
 set.seed(222)
+
+# run the model with default parameters
 rf <- randomForest(Cluster ~., data = train) # assumes classification if dependent variable is a factor
 print(rf)
 # OOB 27.17
 # OOB for 4 clusters 34.59
-
 # default mtry is sqrt(p) where p = number of predictors
-# prints OOB (accuracy is 100 - OOB) and confusion matrix (shows which classes have the most error in prediction)
+# prints OOB (~ accuracy is 100 - OOB) and confusion matrix (shows which classes have the most error in prediction)
 attributes(rf)
 rf$confusion
 # rf$whatever attribute you want to look at
@@ -743,6 +761,7 @@ rf$confusion
 library(caret)
 p1 <- predict(rf, train)
 confusionMatrix(p1, train$Cluster)
+# accuracy is ~99%
 # gives confusion matrix
 # gives accuracy, 95% confidence interval (closer values are better)
 # statistics by class
@@ -750,14 +769,14 @@ confusionMatrix(p1, train$Cluster)
 
 p2 <- predict(rf, test)
 confusionMatrix(p2, test$Cluster)
-# accuracy comes down a bit
+# accuracy comes down a bit to ~75%
 
 
 # error rate
 plot(rf)
 # as ntree grows, OOB is on y axis
 
-# model tuning
+# model tuning example:
 # t <- tuneRF(train[,-index for Cluster], train[,index for Cluster],
 #        stepFactor = 1,
 #        plot = TRUE,
@@ -765,30 +784,46 @@ plot(rf)
 #        trace = TRUE,
 #        improve = 0.05)
 
+# model tuning NOTE: this makes our OOB 
+# if it doesn't search very much, try smaller stepFactor, i.e. 0.5
+# gives info on what mtry value to use
 t <- tuneRF(train[,-1], train[,1],
             stepFactor = 0.5,
             plot = TRUE,
-            ntreeTry = 300, # looking at plot(rf), we see that we can't improve our OOB after 300 trees, so that is why we picked this value
+            ntreeTry = 500, # looking at plot(rf), we see that we can't improve our OOB after 300 trees, so that is why we picked this value
             trace = TRUE,
             improve = 0.05)
 
-# if it doesn't search very much, try smaller stepFactor, i.e. 0.5
-# gives info on what mtry value to use
 
 # go back to rf model
+set.seed(222)
 rf <- randomForest(Cluster~., data = train,
-                   ntree = 300, 
-                   mtry =14, 
+                   ntree = 500, 
+                   mtry =8, 
                    importance = TRUE,
                    proximity = TRUE) # seems optional?
 print(rf)
-# OOB went up for some reason?
+# OOB 25.54%, so it improved
 # OOB for 4 clusters didn't change
 
 # error should change
 # classification error should change for each class
 # you can go through p1 and p2 again
 # accuracy of p2 should have improved slightly
+
+p1 <- predict(rf, train)
+confusionMatrix(p1, train$Cluster)
+# accuracy is ~99%
+# gives confusion matrix
+# gives accuracy, 95% confidence interval (closer values are better)
+# statistics by class
+# this model has already seen all the data, hence mismatch in previous OOB and accuracy
+
+p2 <- predict(rf, test)
+confusionMatrix(p2, test$Cluster)
+
+
+
 
 # not sure what this is important for
 # No. of nodes for the 300 trees
@@ -813,7 +848,8 @@ varUsed(rf) # which predictors are actually used in the rf? you get a value for 
 
 # partial dependence plot, shows marginal effect of a vriable on the class probability for classification
 partialPlot(rf, train, variable of interest, "class of interest")
-partialPlot(rf, train, OpenWater_pct, "2")
+partialPlot(rf, train, OpenWater_pct, "1")
+partialPlot(rf, train, Salinity, "1")
 # for a spectrum of values for that variable, for which part of the spectrum does it tend to predict each class most strongly?
 # for a class with less accuracy and higher confusion, you may be able to see that in these plots
 
