@@ -14,7 +14,7 @@ theme_set(theme(legend.position = "none", panel.background = element_blank(),
 
 ## Bring in data:
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-dat <- readRDS("WUS_all_USGS_SC_Q_data.rds")
+# dat <- readRDS("WUS_all_USGS_SC_Q_data.rds")
 dat <- readRDS("WUS_UNM_all_USGS_SC_Q_data.rds")
 
 dat$SiteID <- factor(dat$SiteID)
@@ -98,11 +98,24 @@ levels(sub$SiteID) # 244
 dat_availability <- select(sub, c("SiteID", "Year"))
 dat_availability <- unique(dat_availability)
 
+# Load packages for fancy figures
+library(wesanderson)
+library(hrbrthemes)
+library(gcookbook)
+
 # HISTOGRAM nSites
+pal <- wes_palette("Darjeeling1", 1, type = "discrete")
+
 p <- ggplot(dat_availability, aes(x = as.numeric(as.character(Year)), y = ..count..))+
-  geom_histogram(mapping = aes(x = as.numeric(as.character(Year))), binwidth = 1, fill = 'lightseagreen', color = 'white')+
-  labs(x = "Year", y = "Number of Sites", title = "Data Availability: # of Sites per Year with Data", subtitle = 'n = 244 sites')
-  #geom_density(color = 'red')+
+  geom_histogram(mapping = aes(x = as.numeric(as.character(Year))), binwidth = 1, color = 'white', fill = wes_palette("Zissou1", 1, "discrete"))+
+  labs(x = "Year", y = "Number of Sites", title = "Data Availability: # of Sites per Year with Data", subtitle = 'n = 244 sites')+
+  theme_ipsum()+
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5, face = "bold"))+
+  theme(axis.title.x = element_text(hjust = 0.5, size = 14, face = "bold"))+
+  theme(axis.title.y = element_text(hjust = 0.5, size = 14, face = "bold"))+
+  theme(axis.text = element_text(size = 18, face = "bold"))
+    
+
 print(p)
 
 
@@ -113,11 +126,16 @@ sub2 <- sub %>%
 sub2 <- select(sub2, -c("mean"))
 sub3 <- sub2 %>%
   group_by(SiteID) %>%
-  count()
+  dplyr::count()
+
 p <- ggplot(sub3, aes(x = n, y = ..count..))+
-  geom_histogram(mapping = aes(x = n), binwidth = 1, fill = 'lightseagreen', colour = 'white')+
-  labs(x = "Number of Years of Data", y = "Number of Sites", title = "Data Availability: # of Years of Data per Site", subtitle = "n = 244 sites")
-  #geom_density()
+  geom_histogram(mapping = aes(x = n), binwidth = 1, fill = wes_palette("Zissou1", 1, "discrete"), colour = 'white')+
+  labs(x = "Number of Years of Data", y = "Number of Sites", title = "Data Availability: # of Years of Data per Site", subtitle = "n = 244 sites")+
+  theme_ipsum()+
+  theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5, face = "bold"))+
+  theme(axis.title.x = element_text(hjust = 0.5, size = 14, face = "bold"))+
+  theme(axis.title.y = element_text(hjust = 0.5, size = 14, face = "bold"))+
+  theme(axis.text = element_text(size = 18, face = "bold"))
 print(p)
 
 # sub2$PORadd <- "1"
@@ -233,19 +251,43 @@ meta$Lon <- as.numeric(as.character(meta$Lon))
 getwd()
 saveRDS(meta, "WUS_UNM_USGS_disch_SC_sites.rds")
 
+clust <- readRDS("/Volumes/Blaszczak Lab/FSS/FSS_clustering/Cluster Plots and Results/cluster_results_2cl_SCQ.rds")
+head(clust)
+head(meta)
+meta <- merge(meta, clust, by = "SiteID")
+class(meta$Cluster)
+meta$Cluster <- factor(as.character(meta$Cluster))
+
 # Plot
 some.states <- c('california', 'nevada', 'utah', 'arizona', 'colorado', 'new mexico', 'texas', 'oregon', 'washington', 'montana', 'idaho', 'north dakota', 'south dakota', 'wyoming', 'kansas', 'nebraska', 'oklahoma', 'missouri', 'arkansas', 'iowa', 'minnesota', 'louisiana')
 some.states.map <- map_data("state", region = some.states)
+
 ggplot(some.states.map)+
-  geom_polygon(mapping = aes(x = long, y = lat, group = group), fill = "grey", color = "white")+
-  geom_point(meta, mapping = aes(x = Lon, y = Lat), color = 'indianred1', size = 1)+
+  geom_polygon(mapping = aes(x = long, y = lat, group = group), fill = "grey85", color = "white")+
+  geom_point(meta, mapping = aes(x = Lon, y = Lat, color = Cluster), size = 1)+
   theme(panel.background = element_blank(), legend.position = 'none', 
-        axis.title = element_blank(), axis.text = element_blank(), 
+        #axis.title = element_blank(), axis.text = element_blank(), 
         axis.ticks = element_blank(), plot.title = element_text(hjust = 0.5), 
         plot.subtitle = element_text(hjust = 0.5), axis.line = element_blank())+
-  labs(title = "Concurrent USGS SC and Q Sites", subtitle = "n = 246")
+  # labs(title = "Concurrent USGS SC and Q Sites")+
+  #labs(subtitle = "n = 246)
+  theme_ipsum()+
+  # theme(plot.title = element_text(hjust = 0.5), plot.subtitle = element_text(hjust = 0.5, face = "bold"))+
+  # theme(axis.title.x = element_text(hjust = 0.5, size = 14, face = "bold"))+
+  # theme(axis.title.y = element_text(hjust = 0.5, size = 14, face = "bold"))+
+  # theme(axis.text = element_text(size = 18, face = "bold"))+
+  theme(axis.title.x = element_blank(), axis.text.x = element_blank())+
+  theme(axis.title.y = element_blank(), axis.text.y = element_blank())+
+  ylab("Latitude")+
+  xlab("Longitude")+
+  theme(panel.grid.minor  = element_line(color = "white"), panel.grid.major = element_line(color = "white"))+
+  scale_x_continuous(position = "top")+
+  scale_color_manual(values = c("#3B9AB2", "#E1AF00"), guide = guide_legend(title.position = "top", title.hjust = 0.5))+
+  theme(legend.position = c(0.15, 0.15), legend.text = element_text(size = 14, face = "bold"), legend.title = element_text(size = 14, face = "bold"), 
+        legend.margin = margin(0,0,0,0))+
+  theme(plot.margin = margin(20,0,0,0))
 
-
+# wesanderson palette Zissou 1: values = c("#3B9AB2", "#78B7C5", "#EBCC2A", "#E1AF00", "#F21A00")
 
 
 
