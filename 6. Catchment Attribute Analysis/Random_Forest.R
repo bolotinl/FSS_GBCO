@@ -1,5 +1,172 @@
-# PREP ####
+#################################################################################
+# https://www.youtube.com/watch?v=dJclNIN-TPo
+library(randomForest)
 library(tidyverse)
+library(tidymodels)
+
+# Bring df in and format
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+# dat <- readRDS("attribute_df.rds")
+dat <- readRDS("attribute_tune_df.rds")
+# dat <- readRDS("attribute_df_add_nadp.rds")
+# dat <- readRDS("attribute_df_4cl.rds")
+dat <- dat %>%
+  rename(Soil_Salinity = Salinity, Soil_pH = pH, Soil_Thickness = Thickness, Soil_Permeability = Permeability, Soil_OM_Content = OM_Content)
+# remove the SiteID and COMID so it isn't used by the RF model
+dat <- dat %>%
+  select(-c("SiteID", "COMID"))
+# Turn cluster into a factor
+sapply(dat, class)
+dat$Cluster <- as.factor(dat$Cluster)
+
+set.seed(123)
+dat %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n)) # ~70/30
+# Split data into testing vs training datasets
+set.seed(123)
+splits <- initial_split(dat, strata = Cluster)
+train <- training(splits)
+test  <- testing(splits)
+# Check that we kept the distribution of clusters
+train %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n))
+test  %>%
+  count(Cluster) %>%
+  mutate(prop = n/sum(n))
+# both still ~70/30
+
+# run the model with default parameters
+set.seed(222)
+rf <- randomForest(Cluster ~., data = train) # assumes classification if dependent variable is a factor
+print(rf)
+# OOB 27.17
+# 26.63
+
+# default mtry is sqrt(p) where p = number of predictors
+attributes(rf)
+rf$confusion
+
+
+library(caret)
+p1 <- predict(rf, train)
+confusionMatrix(p1, train$Cluster)
+# accuracy is ~99%
+
+p2 <- predict(rf, test)
+confusionMatrix(p2, test$Cluster)
+# accuracy comes down a bit to ~75%
+# 73
+
+plot(rf)
+# as ntree grows, OOB is on y axis
+
+# Tune RF
+t <- tuneRF(train[,-1], train[,1],
+            stepFactor = 0.5,
+            plot = TRUE,
+            ntreeTry = 300, # looking at plot(rf), we see that we can't improve our OOB after 300 trees, so that is why we picked this value
+            trace = TRUE,
+            improve = 0.05)
+
+
+# go back to rf model setting new parameters
+set.seed(222)
+rf <- randomForest(Cluster~., data = train,
+                   ntree = 300, 
+                   mtry =4, 
+                   importance = TRUE,
+                   proximity = TRUE) # seems optional?
+
+print(rf)
+# OOB 26.63%, so it improved
+
+# Try predictions again
+p1 <- predict(rf, train)
+confusionMatrix(p1, train$Cluster)
+# accuracy is ~99%
+
+p2 <- predict(rf, test)
+confusionMatrix(p2, test$Cluster)
+# accuracy improved to 77%
+
+# Variable importance
+varImpPlot(rf)
+# MeanDecreaseAccuracy, how does this variable contribute to the accuracy of the model
+# MeanDecreaseGini, Gini is a measure of node purity, how does this variable contribute to node purity, 
+# can make some plot specifications
+varImpPlot(rf,
+           sort = T,
+           n.var = 62, # number of variables to show
+           main = "Plot Title")
+
+importance(rf) # gives values for importance
+
+varUsed(rf) # which predictors are actually used in the rf? you get a value for each variable for how many times it was used
+# should align with importance
+
+# Partial dependence plot, 
+# shows marginal effect of a vriable on the class probability for classification
+partialPlot(rf, train, variable of interest, "class of interest")
+partialPlot(rf, train, OpenWater_pct, "1")
+partialPlot(rf, train, Soil_Salinity, "1")
+partialPlot(rf, train, WBM_PRSNOW, "1")
+partialPlot(rf, train, BFI_pct, "1")
+
+# for a spectrum of values for that variable, for which part of the spectrum does it tend to predict each class most strongly?
+# for a class with less accuracy and higher confusion, you may be able to see that in these plots
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#############################################################################################################################################
+#############################################################################################################################################
+#############################################################################################################################################
+#############################################################################################################################################
+#############################################################################################################################################
+
+
+
+
+
+
+
+
+
+
+
 # Bring df back in for RF 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
@@ -713,6 +880,8 @@ setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # dat <- readRDS("attribute_tune_df.rds")
 dat <- readRDS("attribute_df_add_nadp.rds")
 # dat <- readRDS("attribute_df_4cl.rds")
+dat <- dat %>%
+  rename(Soil_Salinity = Salinity, Soil_pH = pH, Soil_Thickness = Thickness, Soil_Permeability = Permeability, Soil_OM_Content = OM_Content)
 
 # Now remove the SiteID and COMID so it isn't used by the RF model
 dat <- dat %>%

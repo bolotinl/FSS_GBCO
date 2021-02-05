@@ -3,10 +3,11 @@
 library(dplyr)
 library(naniar)
 
+# CREATE ATTRIBUTE DFs####
 # Get data on cluster membership
-setwd("/Volumes/Blaszczak Lab/FSS/FSS_clustering")
-clust <- readRDS("cluster_results.rds")
-clust <- readRDS("cluster_results_4cl.rds")
+setwd("/Volumes/Blaszczak Lab/FSS/FSS_clustering/Cluster Plots and Results")
+clust <- readRDS("cluster_results.rds") # 2cl SCQ
+clust <- readRDS("cluster_results_4cl.rds") # SCQ
 clust <- readRDS("cluster_results_2cl_SC.rds")
 
 
@@ -69,51 +70,41 @@ names(dat)
 
 # I know that if data is unavailable, the value defaults to -9999
 # One site has no attribute data so it will need to be removed from the clusters
-# For now we will set the data to NA
-# dat <- dat %>% replace_with_na_all(condition = ~.x == -9999) # USGS-10312210
-# 
-# dat$SiteID <- as.factor(dat$SiteID)
-# levels(dat$SiteID)
-# # Actually, remove
-# dat <- dat[-c(dat$SiteID == "USGS-10312210"), ]
-# dat$SiteID <- factor(dat$SiteID)
-# levels(dat$SiteID)
-# dat <- dat[-c(dat$SiteID == "USGS-10312210"), ]
-# dat$SiteID <- factor(dat$SiteID)
-# levels(dat$SiteID)
-
 dat <- subset(dat, dat$SiteID != "USGS-10312210")
 dat$SiteID <- factor(dat$SiteID)
 
 
 # Save a data frame that will help us keep track of the SiteID, Cluster, COMID
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-saveRDS(dat, "attribute_df.rds")
-saveRDS(dat, "attribute_df_add_nadp.rds")
+saveRDS(dat, "attribute_df.rds") # without atmospheric deposition
+saveRDS(dat, "attribute_df_add_nadp.rds") 
 
 # setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-# saveRDS(dat, "attribute_df_4cl.rds")
+# saveRDS(dat, "attribute_df_4cl.rds") # data frame for attributes and 4 clusters (SCQ)
 
+# FEATURE SELECTION ####
+# Play with feature selection
 names(dat)
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-dat <- readRDS("attribute_df.rds")
-dat <- dat[-c(dat$SiteID == "USGS-10312210"), ]
+# dat <- readRDS("attribute_df.rds")
+dat <- readRDS("attribute_df_add_nadp.rds")
 
 dat <- dat %>%
   select(-c("SiteID", "COMID"))
 sapply(dat, class)
 
-# Group land use classes into: 
+# Group land use classes: 
 # Developed
 # Agriculture
 # Undeveloped
 # Open Water
-dat <- dat %>%
-  mutate(Developed_pct = DevelopedOpenSpace_pct + DevelopedHiIntensity_pct + DevelopedLowIntensity_pct + DevelopedMedIntensity_pct,
-         Agriculture_pct = PastureHay_pct + CultivatedCrops_pct,
-         Undeveloped_pct = PerennialIceSnow_pct + BarrenLand_pct + DeciduousForest_pct + EvergreenForest_pct + MixedForest_pct + ShrubScrub_pct + GrasslandHerbaceous_pct + WoodyWetlands_pct + EmergentHerbWetlands_pct)
-dat <- dat %>%
-  select(-c("DevelopedOpenSpace_pct", "DevelopedHiIntensity_pct", "DevelopedLowIntensity_pct", "DevelopedMedIntensity_pct", "PastureHay_pct", "CultivatedCrops_pct", "PerennialIceSnow_pct", "BarrenLand_pct", "DeciduousForest_pct", "EvergreenForest_pct", "MixedForest_pct", "ShrubScrub_pct", "GrasslandHerbaceous_pct", "WoodyWetlands_pct", "EmergentHerbWetlands_pct"))
+# dat <- dat %>%
+#   mutate(Developed_pct = DevelopedOpenSpace_pct + DevelopedHiIntensity_pct + DevelopedLowIntensity_pct + DevelopedMedIntensity_pct,
+#          Agriculture_pct = PastureHay_pct + CultivatedCrops_pct,
+#          Undeveloped_pct = PerennialIceSnow_pct + BarrenLand_pct + DeciduousForest_pct + EvergreenForest_pct + MixedForest_pct + ShrubScrub_pct + GrasslandHerbaceous_pct + WoodyWetlands_pct + EmergentHerbWetlands_pct)
+# dat <- dat %>%
+#   select(-c("DevelopedOpenSpace_pct", "DevelopedHiIntensity_pct", "DevelopedLowIntensity_pct", "DevelopedMedIntensity_pct", "PastureHay_pct", "CultivatedCrops_pct", "PerennialIceSnow_pct", "BarrenLand_pct", "DeciduousForest_pct", "EvergreenForest_pct", "MixedForest_pct", "ShrubScrub_pct", "GrasslandHerbaceous_pct", "WoodyWetlands_pct", "EmergentHerbWetlands_pct"))
+
 
 # Look at correlations between variables
 check_cor <- 
@@ -126,25 +117,49 @@ cor_high <-
   subset(abs(value) > 0.9) %>% 
   dplyr::distinct() %>% 
   dplyr::arrange(Var1, Var2)
-# This provides two rows per highly correlated pair of predictors
-getwd()
-saveRDS(check_cor, "corr_matrix_all_attributes.rds")
-saveRDS(cor_high, "corr_high_all_attributes.rds")
 
-# Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
+# # This provides two rows per highly correlated pair of predictors
+# getwd()
+# saveRDS(check_cor, "corr_matrix_all_attributes.rds")
+# saveRDS(cor_high, "corr_high_all_attributes.rds")
+
+cor_high$Var1 <- factor(cor_high$Var1)
+(cor_remove <- levels(cor_high$Var1))
 dat <- dat %>%
-  select(-c("Stream_Slope", "Flowline_Length", "MIRAD_Irrig_Ag_Land_pct", "BR_Gneiss" ,"BR_Granitic", "BR_Ultramafic",          
-            "BR_Quarternary","BR_Sedimentary","BR_Volcanic", "BR_Anorthositic",        
-            "BR_Intermediate", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013"))
+  select(-c("NID_STORAGE2013", "MAJOR2013", "Flowline_Length"))
+
+# Look at correlations again
+check_cor <- 
+  cor(dat[,-1], use = "pairwise.complete.obs", method = "pearson")
+
+cor_high <-
+  check_cor %>% 
+  reshape2::melt() %>% 
+  subset(Var1 != Var2 & is.finite(value)) %>% 
+  subset(abs(value) > 0.9) %>% 
+  dplyr::distinct() %>% 
+  dplyr::arrange(Var1, Var2)
+
+saveRDS(dat, "attribute_tune_df.rds")
 
 
-saveRDS(dat, "attribute_tune_df.rds") # CURRENT
 
-# Screw around with removing some other stuff and see what happens
-# Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
+# # Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
 dat <- dat %>%
-  select(-c("Stream_Slope", "Flowline_Length", "MIRAD_Irrig_Ag_Land_pct", "BR_Gneiss" ,"BR_Granitic", "BR_Ultramafic",          
-            "BR_Quarternary","BR_Sedimentary","BR_Volcanic", "BR_Anorthositic",        
-            "BR_Intermediate", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013", "Salinity", "pH", "Thickness", "Elevation_Min", "Elevation_Max"))
+  select(-c("Stream_Slope", "MIRAD_Irrig_Ag_Land_pct", "BR_Gneiss" ,"BR_Granitic", "BR_Ultramafic",
+            "BR_Quarternary","BR_Sedimentary","BR_Volcanic", "BR_Anorthositic",
+            "BR_Intermediate"))
 
-saveRDS(dat, "attribute_tune_df.rds") # NOT CURRENT
+saveRDS(dat, "attribute_tune_df.rds")
+
+# 
+# saveRDS(dat, "attribute_tune_df.rds") # NOT CURRENT
+
+# # Screw around with removing some other stuff and see what happens
+# # Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
+# dat <- dat %>%
+#   select(-c("Stream_Slope", "Flowline_Length", "MIRAD_Irrig_Ag_Land_pct", "BR_Gneiss" ,"BR_Granitic", "BR_Ultramafic",          
+#             "BR_Quarternary","BR_Sedimentary","BR_Volcanic", "BR_Anorthositic",        
+#             "BR_Intermediate", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013", "Salinity", "pH", "Thickness", "Elevation_Min", "Elevation_Max"))
+# 
+# saveRDS(dat, "attribute_tune_df.rds") # NOT CURRENT
