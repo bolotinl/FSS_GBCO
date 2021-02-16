@@ -6,7 +6,7 @@ detach("package:here", unload = TRUE)
     # 1) detach it using this line
     # 2) set your working directory to the correct location
     # 3) re-call the package from your library
-setwd("/Volumes/Blaszczak Lab/FSS/All Data")
+setwd("/Volumes/Blaszczak Lab/FSS/All Data") # working directory containing concurrent_overlap.R, disch_query.rds, and SC_query.rds
 library("here") # WORKING DIRECTORY MUST BE CORRECT BEFORE CALLING THIS PACKAGE AND USING IT
 library("rgdal") #For CRS
 library("data.table")
@@ -16,8 +16,8 @@ library("dplyr") #For filtering
 source(here("concurrent_overlap.R"))
 
 #Read in the data queries
- disch_query <- readRDS(here("disch_query.rds")) # All discharge sites
- SC_query <- readRDS(here("SC_query.rds")) # All SC sites
+ disch_query <- readRDS(here("disch_query.rds")) # All discharge sites in the US
+ SC_query <- readRDS(here("SC_query.rds")) # All SC sites in the US
 
 #-------------------------------------------------
 #Filter for all lotic NWIS sites with specific conductivity sensors (subdaily or daily)  
@@ -49,7 +49,7 @@ disch_lotic_sensor <- disch_query %>%
   
   
   
-  # Write 2 csv's: 1 for all lotic sites with SC and 1 for all lotic sites with Q, this is all data we want
+  # Write 2 csv's: 1 for all lotic sites with SC and 1 for all lotic sites with Q
   write.csv(SC_lotic_sensor, "USGS_all_SC_lotic_sensor.csv") # as opposed to SC_only which is sites that have SC and not disch
   write.csv(disch_lotic_sensor,"USGS_all_disch_lotic_sensor.csv") # as opposed to disch_only which is sites that have disch and not SC
   
@@ -67,7 +67,7 @@ disch_lotic_sensor <- disch_query %>%
       site_types = c("ST", "ST-CA", "ST-DCH", "ST-TS", "SP"),
       data_types = c("uv", "dv"),
       min_obs = 1
-    )  # there are 2002 sites with flowing water in the COUNTRY with SC and Discharge sensors
+    )  # there are 2002 sites with flowing water in the COUNTRY with both SC and Discharge sensors
 
     # As it is, the output dataframe for both_sensor is just the SiteID and the Lat Long. Let's include other columns.
     SC_both <- subset(SC_lotic_sensor, SC_lotic_sensor$Site_ID %in% both_sensor$Site_ID)
@@ -78,20 +78,3 @@ disch_lotic_sensor <- disch_query %>%
     levels(both_sensor$Site_ID) # 2002 still, so we're good and we've added important metadata
     write.csv(both_sensor, "USGS_all_disch_SC_lotic_sensor.csv") # Flowing waters with Q and SC
 
-# #See what sites have SC that do not have discharge
-# SC_only <- setdiff(SC_lotic_sensor, disch_SC_sensor) # 811 sites
-# unique(SC_query$Site_ID)
-# SC_query[duplicated(SC_query$Site_ID),]
-# SC_only <- SC_query[which(SC_query$Site_ID %in% SC_only$Site_ID),]
-# SC_only$Site_ID <- as.factor(SC_only$Site_ID)
-# levels(SC_only$Site_ID)
-# SC_only$site_tp_cd <- as.factor(SC_only$site_tp_cd)
-# levels(SC_only$site_tp_cd) # already filtered for only flowing waters
-
-# write.csv(SC_only, "SC_sensor_only.csv")
-#
-# #See what sites have discharge that do not have SC
-# disch_only <- setdiff(disch_lotic_sensor, disch_SC_sensor)
-# disch_only <- disch_query[which(disch_query$Site_ID %in% disch_only$Site_ID),]
-#
-# write.csv(disch_only, "disch_sensor_only.csv")
