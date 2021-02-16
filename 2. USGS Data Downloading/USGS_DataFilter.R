@@ -1,60 +1,41 @@
 # Data is for all of US
-# Need to filter for all basins west of the main stem of the Mississipi River (HUC 14, 15, 16)
+# Need to filter for all basins west of the main stem of the Mississipi River (HUC 10-18)
 rm(list = ls())
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 library(tidyverse)
 
-# Read in data
+# Read in data for all available sites
 disch_sensor <- read.csv("USGS_all_disch_lotic_sensor.csv")
 SC_sensor <- read.csv("USGS_all_SC_lotic_sensor.csv")
-both_sensor <- read.csv("USGS_all_disch_SC_lotic_sensor.csv")
+disch_SC_sensor <- read.csv("USGS_all_disch_SC_lotic_sensor.csv")
 
-# Filter for HUC regions 1-9 (we already got 10-18)
+# Need to filter for HUC 10-18 (all hydrologic regions west of the main stem of the Mississippi River)
 disch_huc_sites <- disch_sensor %>% 
-  filter(huc_cd >= 1000000 & huc_cd <= 9000000 ) %>% 
+  filter(huc_cd >= 10000000 ) %>% 
   select(Site_ID,station_nm,Lat,Lon,huc_cd,parm_cd,begin_date,end_date,count_nu,site_tp_cd,data_type_cd,access_cd)
-  disch_huc_sites$Site_ID <- factor(disch_huc_sites$Site_ID)
-  levels(disch_huc_sites$Site_ID) # 10,171 (12,960 10-18)
+disch_huc_sites$Site_ID <- factor(disch_huc_sites$Site_ID)
+levels(disch_huc_sites$Site_ID) # 12,960
 
 SC_huc_sites <- SC_sensor %>% 
-  filter(huc_cd >= 1000000 & huc_cd <= 9000000 ) %>% 
+  filter(huc_cd >= 10000000) %>% 
   select(Site_ID,station_nm,Lat,Lon,huc_cd,parm_cd,begin_date,end_date,count_nu,site_tp_cd,data_type_cd,access_cd)
-  SC_huc_sites$Site_ID <- factor(SC_huc_sites$Site_ID)  
-  levels(SC_huc_sites$Site_ID) # 1,641 (1,106 10-18)
-  
-both_huc_sites <- both_sensor %>%
-  filter(huc_cd >= 1000000 & huc_cd <= 9000000 ) %>% 
+SC_huc_sites$Site_ID <- factor(SC_huc_sites$Site_ID)  
+levels(SC_huc_sites$Site_ID) # 1,106
+
+disch_SC_huc_sites <- disch_SC_sensor %>%
+  filter(huc_cd >= 10000000) %>%
   select(Site_ID,station_nm,Lat,Lon,huc_cd,parm_cd,begin_date,end_date,count_nu,site_tp_cd,data_type_cd,access_cd)
-  both_huc_sites$Site_ID <- factor(both_huc_sites$Site_ID)
-  levels(both_huc_sites$Site_ID) # 1,128 (828 10-18)
+disch_SC_huc_sites$Site_ID <- factor(disch_SC_huc_sites$Site_ID)
+levels(disch_SC_huc_sites$Site_ID) # 828
 
-rm(SC_sensor, disch_sensor, both_sensor)
-## Save dataframes ## Need to redo this to preserve files that were just GBCO or just WUS. Delete this comment once that has been done. 
-# bind with WUS files so  we have files with the whole USA
-setwd("/Volumes/Blaszczak Lab/FSS/All Data/")
-wus_disch <- readRDS("WUS_USGS_disch_sites.rds")
-disch_huc_sites <- rbind(disch_huc_sites, wus_disch)
-saveRDS(disch_huc_sites, "USA_USGS_disch_sites.rds")  
-rm(wus_disch)  
-    
-wus_SC <- readRDS("WUS_USGS_SC_sites.rds")
-SC_huc_sites <- rbind(SC_huc_sites, wus_SC)
-saveRDS(SC_huc_sites, "USA_USGS_SC_sites.rds")
-rm(wus_SC)
+## Save dataframes
+  # As .rds files
+saveRDS(disch_huc_sites, "USGS_disch_sites.rds") # List of HUC 10-18 sites with discharge
+saveRDS(SC_huc_sites, "USGS_SC_sites.rds") # List of HUC 10-18 sites with SC
+saveRDS(disch_SC_huc_sites, "USGS_disch_SC_sites.rds") # List of HUC 10-18 sites with discharge AND SC
 
-wus_both <- readRDS("WUS_USGS_disch_SC_sites.rds")
-both_huc_sites <- rbind(both_huc_sites, wus_both)
-saveRDS(both_huc_sites, "USA_USGS_disch_SC_sites.rds")
-rm(wus_both)
+  # As .csv files
+write.csv(disch_huc_sites, "USGS_disch_sites.csv") # List of HUC 10-18 sites with discharge
+write.csv(SC_huc_sites, "USGS_SC_sites.csv") # List of HUC 10-18 sites with SC
+write.csv(disch_SC_huc_sites, "USGS_disch_SC_sites.csv") # List of HUC 10-18 sites with discharge AND SC
 
-# saveRDS(disch_huc_sites, "WUS_USGS_disch_sites.rds") # List of HUC 10-18 sites with discharge
-# saveRDS(SC_huc_sites, "WUS_USGS_SC_sites.rds") # List of HUC 10-18 sites with SC
-# saveRDS(both_huc_sites, "WUS_USGS_disch_SC_sites.rds") # List of HUC 10-18 sites with discharge AND SC
-
-## another method to get list of HUC 14, 15, 16 sites with BOTH discharge and SC:
-# overlap_huc_sites <- intersect(disch_huc_sites$Site_ID, SC_huc_sites$Site_ID)
-# overlap_huc_sites <- SC_huc_sites[which(SC_huc_sites$Site_ID %in% overlap_huc_sites),]
-# class(overlap_huc_sites$Site_ID)
-# overlap_huc_sites$Site_ID <- factor(overlap_huc_sites$Site_ID)
-# levels(overlap_huc_sites$Site_ID)
-# saveRDS(overlap_huc_sites, "GBCO_dischSC_sites.rds") # 182 # List of HUC 14, 15, 16 sites with BOTH discharge and SC
