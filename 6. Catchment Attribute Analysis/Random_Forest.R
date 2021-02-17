@@ -9,10 +9,16 @@ setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # dat <- readRDS("attribute_df.rds")
 dat <- readRDS("attribute_tune_df.rds")
 # dat <- readRDS("attribute_df_add_nadp.rds")
-# dat <- readRDS("attribute_df_4cl.rds")
+
+# Change variable names to be more clear and intuitive
+# dat <- dat %>%
+#   rename(Soil_Salinity = Salinity, Soil_pH = pH, Soil_Thickness = Thickness, Soil_Permeability = Permeability, Soil_OM_Content = OM_Content)
+# Not working?
 dat <- dat %>%
-  rename(Soil_Salinity = Salinity, Soil_pH = pH, Soil_Thickness = Thickness, Soil_Permeability = Permeability, Soil_OM_Content = OM_Content)
-# remove the SiteID and COMID so it isn't used by the RF model
+  rename(Soil_Salinity = Salinity, Soil_pH = pH, Soil_Thickness = Thickness, Soil_OM_Content = OM_Content)
+
+
+# remove the SiteID and COMID so it isn't used by the RF model (if you haven't already)
 dat <- dat %>%
   select(-c("SiteID", "COMID"))
 # Turn cluster into a factor
@@ -66,7 +72,7 @@ plot(rf)
 t <- tuneRF(train[,-1], train[,1],
             stepFactor = 0.5,
             plot = TRUE,
-            ntreeTry = 300, # looking at plot(rf), we see that we can't improve our OOB after 300 trees, so that is why we picked this value
+            ntreeTry = 500, # looking at plot(rf), we see that we can't improve our OOB after 300 trees, so that is why we picked this value
             trace = TRUE,
             improve = 0.05)
 
@@ -74,13 +80,14 @@ t <- tuneRF(train[,-1], train[,1],
 # go back to rf model setting new parameters
 set.seed(222)
 rf <- randomForest(Cluster~., data = train,
-                   ntree = 300, 
-                   mtry =4, 
+                   ntree = 500, 
+                   mtry =12, 
                    importance = TRUE,
                    proximity = TRUE) # seems optional?
 
 print(rf)
 # OOB 26.63%, so it improved
+# WIth tuned df OOB incrased to 28.8%
 
 # Try predictions again
 p1 <- predict(rf, train)
