@@ -6,21 +6,20 @@ library(tidymodels)
 
 # Bring df in and format
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-# dat <- readRDS("attribute_df.rds")
+# dat <- readRDS("attribute_df.rds") # before adding in atmospheric deposition
+# Choose one: 
 dat <- readRDS("attribute_tune_df.rds")
-# dat <- readRDS("attribute_df_add_nadp.rds")
+dat <- readRDS("attribute_tune_df_1.rds") # Tuned df with removed predictors and combined developed land use
+dat <- readRDS("attribute_df_add_nadp.rds") # Not tuned to take out predictor variables
 
 # Change variable names to be more clear and intuitive
-# dat <- dat %>%
-#   rename(Soil_Salinity = Salinity, Soil_pH = pH, Soil_Thickness = Thickness, Soil_Permeability = Permeability, Soil_OM_Content = OM_Content)
-# Not working?
 dat <- dat %>%
   rename(Soil_Salinity = Salinity, Soil_pH = pH, Soil_Thickness = Thickness, Soil_OM_Content = OM_Content)
-
 
 # remove the SiteID and COMID so it isn't used by the RF model (if you haven't already)
 dat <- dat %>%
   select(-c("SiteID", "COMID"))
+
 # Turn cluster into a factor
 sapply(dat, class)
 dat$Cluster <- as.factor(dat$Cluster)
@@ -29,11 +28,13 @@ set.seed(123)
 dat %>%
   count(Cluster) %>%
   mutate(prop = n/sum(n)) # ~70/30
+
 # Split data into testing vs training datasets
 set.seed(123)
 splits <- initial_split(dat, strata = Cluster)
 train <- training(splits)
 test  <- testing(splits)
+
 # Check that we kept the distribution of clusters
 train %>%
   count(Cluster) %>%
@@ -47,8 +48,10 @@ test  %>%
 set.seed(222)
 rf <- randomForest(Cluster ~., data = train) # assumes classification if dependent variable is a factor
 print(rf)
-# OOB 27.17
-# 26.63
+# attribute_df_add_nadp.rds OOB = 26.09%
+# attribute_tune_df_1.rds OOB = 27.72% 
+# attribute_tune_df.rds OOB = 27.17%
+
 
 # default mtry is sqrt(p) where p = number of predictors
 attributes(rf)
@@ -58,14 +61,18 @@ rf$confusion
 library(caret)
 p1 <- predict(rf, train)
 confusionMatrix(p1, train$Cluster)
-# accuracy is ~99%
+# accuracy is ~99% all the time
 
 p2 <- predict(rf, test)
 confusionMatrix(p2, test$Cluster)
-# accuracy comes down a bit to ~75%
-# 73
+# attribute_df_add_nadp.rds prediction accuracy = 75%
+# attribute_tune_df_1.rds prediction accuracy = 77%
+# attribute_tune_df.rds prediction accuracy = 77%
 
 plot(rf)
+# attribute_df_add_nadp.rds ntree = 500
+# attribute_tune_df_1.rds ntree = 500
+# attribute_tune_df.rds ntree = 500
 # as ntree grows, OOB is on y axis
 
 # Tune RF
@@ -75,7 +82,9 @@ t <- tuneRF(train[,-1], train[,1],
             ntreeTry = 500, # looking at plot(rf), we see that we can't improve our OOB after 300 trees, so that is why we picked this value
             trace = TRUE,
             improve = 0.05)
-
+# attribute_df_add_nadp.rds mtry = either 8 or 16
+# attribute_tune_df_1.rds mtry = either 6 or 12
+# attribute_tune_df.rds mtry = 12
 
 # go back to rf model setting new parameters
 set.seed(222)
@@ -86,17 +95,22 @@ rf <- randomForest(Cluster~., data = train,
                    proximity = TRUE) # seems optional?
 
 print(rf)
-# OOB 26.63%, so it improved
-# WIth tuned df OOB incrased to 28.8%
+# attribute_df_add_nadp.rds mtry = 8, OOB = 26.09%
+# attribute_df_add_nadp.rds mtry = 16, OOB = 24.46%
+# attribute_tune_df_1.rds mtry = 6, OOB = 29.89%
+# attribute_tune_df_1.rds mtry = 12, OOB = 25.54% 
+# attribute_tune_df.rds mtry = 12, OOB = 28.8%
 
 # Try predictions again
 p1 <- predict(rf, train)
 confusionMatrix(p1, train$Cluster)
-# accuracy is ~99%
+# accuracy is ~99% all the time
 
 p2 <- predict(rf, test)
 confusionMatrix(p2, test$Cluster)
-# accuracy improved to 77%
+# attribute_df_add_nadp.rds mtry = 16, prediction accuracy = 77%
+# attribute_tune_df_1.rds mtry = 12, prediction accuracy 77%
+# attribute_tune_df.rds mtry = 12, prediction accuracy 77%
 
 # Variable importance
 varImpPlot(rf)
@@ -177,7 +191,7 @@ partialPlot(rf, train, BFI_pct, "1")
 # Bring df back in for RF 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
-# dat <- readRDS("attribute_tune_df.rds")
+# dat <- readRDS("attribute_tune_df_1.rds")
 # dat <- readRDS("attribute_df_add_nadp.rds")
 # dat <- readRDS("attribute_df_4cl.rds")
 
@@ -493,7 +507,7 @@ last_rf_fit %>%
 # Validation Set #
 # setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # dat <- readRDS("attribute_df.rds")
-# dat <- readRDS("attribute_tune_df.rds")
+# dat <- readRDS("attribute_tune_df_1.rds")
 # # Now remove the SiteID and COMID so it isn't used by the RF model
 # dat <- dat %>%
 #   select(-c("SiteID", "COMID")) # might not be necessary depending on which .rds file you use
@@ -624,7 +638,7 @@ last_rf_fit %>%
 # Cross Validation (10 fold) ####
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df.rds")
-dat <- readRDS("attribute_tune_df.rds")
+dat <- readRDS("attribute_tune_df_1.rds")
 # Now remove the SiteID and COMID so it isn't used by the RF model
 dat <- dat %>%
   select(-c("SiteID", "COMID")) # might not be necessary depending on which .rds file you use
@@ -884,7 +898,7 @@ library(tidymodels)
 # Bring df back in for RF 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # dat <- readRDS("attribute_df.rds")
-# dat <- readRDS("attribute_tune_df.rds")
+# dat <- readRDS("attribute_tune_df_1.rds")
 dat <- readRDS("attribute_df_add_nadp.rds")
 # dat <- readRDS("attribute_df_4cl.rds")
 dat <- dat %>%
