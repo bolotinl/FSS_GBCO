@@ -2,13 +2,14 @@
 
 library(dplyr)
 library(naniar)
+library(reshape2)
 
 # CREATE ATTRIBUTE DFs####
+# Start by using almost all catchment attributes and see how the random forest model works
 # Get data on cluster membership
 setwd("/Volumes/Blaszczak Lab/FSS/FSS_clustering/Cluster Plots and Results")
-clust <- readRDS("cluster_results.rds") # 2cl SCQ
-clust <- readRDS("cluster_results_4cl.rds") # SCQ
-clust <- readRDS("cluster_results_2cl_SC.rds")
+clust <- readRDS("cluster_results.rds") # results for 2 clusters with flow normalized data (SCQ)
+# clust <- readRDS("cluster_results_2cl_SC.rds") # results for 2 clusters with non-flow normalized data (SC)
 
 
 # Get the catchment attribute data
@@ -21,15 +22,72 @@ soil <- readRDS("WUS_UNM_USGS_Soil_Attributes.rds")
 clim <- readRDS("WUS_UNM_USGS_Water_Bal_Climate_Attributes.rds")
 atms <- readRDS("WUS_UNM_USGS_Atmospheric_Dep.rds")
 
-# Subset attribute data for stuff we actually want to use
-# We only need one of the attribute data frames to include COMID
+# Subset attribute data for stuff we actually want to use (get rid of "No Data" columns, redundant or irrelevant columns)
+# We only need ONE of the attribute data frames to include COMID and SiteID
 names(geol)
 geol <- geol %>%
   select(-c("OLSON_NoData", "BR_NoData", "BR_Water"))
 
 names(hydro)
+# See if NDAMS, NORM_STORAGE, MAJOR, and NID_STORAGE change much over time across all locations
+
+# One site has no data and will mess with our plots, so remove it
+explore_hydro <- hydro
+explore_hydro <- subset(explore_hydro, explore_hydro$SiteID != "USGS-10312210")
+explore_hydro$SiteID <- factor(explore_hydro$SiteID)
+
+# NDAMS (count)
+hydro_ndams <- explore_hydro%>%
+  select(c("SiteID", "COMID", "NDAMS1990", "NDAMS2000", "NDAMS2010", "NDAMS2013")) %>%
+  melt(id.vars = c("SiteID", "COMID"))
+hydro_ndams$variable <- substr(hydro_ndams$variable, 6,9)
+hydro_ndams$variable <- as.numeric(as.character(hydro_ndams$variable))
+# Plot to see change over time
+ggplot()+
+  geom_line(data = hydro_ndams, mapping = aes(x = variable, y = value, color = SiteID))+
+  theme(legend.position = "none")+
+  labs(x = "Year", y = "Accumulated Number of Dams Built on or Before Date", title = "NDAMS")
+
+# NID_STORAGE (acre-feet) Definition: Accumulated maximum dam storage defined as the total storage space in a reservoir below the maximum attainable water surface elevation, including any surcharge storage
+hydro_nid <- explore_hydro%>%
+  select(c("SiteID", "COMID", "NID_STORAGE1990", "NID_STORAGE2000", "NID_STORAGE2010", "NID_STORAGE2013"))%>%
+  melt(id.vars = c("SiteID", "COMID"))
+hydro_nid$variable <- substr(hydro_nid$variable, 12,15)
+hydro_nid$variable <- as.numeric(as.character(hydro_nid$variable))
+# Plot to see change over time
+ggplot()+
+  geom_line(data = hydro_nid, mapping = aes(x = variable, y = value, color = SiteID))+
+  theme(legend.position = "none")+
+  labs(x = "Year")
+# This one does not seem relevant
+
+# NORM_STORAGE (acre-feet)
+hydro_norm <- explore_hydro%>%
+  select(c("SiteID", "COMID", "NORM_STORAGE1990", "NORM_STORAGE2000", "NORM_STORAGE2010", "NORM_STORAGE2013"))%>%
+  melt(id.vars = c("SiteID", "COMID"))
+hydro_norm$variable <- substr(hydro_norm$variable, 13,16)
+hydro_norm$variable <- as.numeric(as.character(hydro_norm$variable))
+# Plot to see change over time
+ggplot()+
+  geom_line(data = hydro_norm, mapping = aes(x = variable, y = value, color = SiteID))+
+  theme(legend.position = "none")+
+  labs(x = "Year", y = "Accumulated Normal Dam Storage (acre-feet)", title = "NORM_STORAGE")
+
+# MAJOR (count)
+hydro_major <- explore_hydro%>%
+  select(c("SiteID", "COMID", "MAJOR1990", "MAJOR2000", "MAJOR2010", "MAJOR2013"))%>%
+  melt(id.vars = c("SiteID", "COMID"))
+hydro_major$variable <- substr(hydro_major$variable, 6,9)
+hydro_major$variable <- as.numeric(as.character(hydro_major$variable))
+# Plot to see change over time
+ggplot()+
+  geom_line(data = hydro_major, mapping = aes(x = variable, y = value, color = SiteID))+
+  theme(legend.position = "none")+
+  labs(x = "Year", y = "Accumulated Number of Major Dams Upstream", title = "MAJOR")
+
+# Things don't change significantly over time, so let's keep 2013
 hydro <- hydro %>%
-  select(c("SiteID", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013"))
+  select(c("SiteID", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013")) 
 
 names(land)
 land <- land %>%
