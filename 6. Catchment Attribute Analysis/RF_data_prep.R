@@ -88,6 +88,7 @@ ggplot()+
 # Things don't change significantly over time, so let's keep 2013
 hydro <- hydro %>%
   select(c("SiteID", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013")) 
+rm(explore_hydro, hydro_major, hydro_ndams, hydro_nid, hydro_norm)
 
 names(land)
 land <- land %>%
@@ -107,11 +108,11 @@ atms <- atms %>%
 
 names(clim)
 # We have two different sources from which we got data on the percent of precipitation that falls as snow
-# Try one and then try the other
-clim <- clim %>%
-  select(-c("WBM_NoData", "BFI_NoData", "PRSNOW_NoData", "PRSNOW", "COMID"))
+# One is the percentage and one is the actual amount of snow in mm. Use the percentage, averaged from 1905-2002
 # clim <- clim %>%
-#   select(-c("WBM_NoData", "BFI_NoData", "PRSNOW_NoData", "WBM_PRSNOW"))
+#   select(-c("WBM_NoData", "BFI_NoData", "PRSNOW_NoData", "PRSNOW", "COMID")) # original version of attribute df
+clim <- clim %>%
+  select(-c("WBM_NoData", "BFI_NoData", "PRSNOW_NoData", "WBM_PRSNOW", "COMID")) # new version to be used with correct attribute for percent of precipitation as snow
 
 # Concatenate attributes, site, and cluster info into a data frame
 dat <- merge(clust, clim, by = "SiteID")
@@ -134,21 +135,21 @@ dat$SiteID <- factor(dat$SiteID)
 
 # Save a data frame that will help us keep track of the SiteID, Cluster, COMID
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-saveRDS(dat, "attribute_df.rds") # without atmospheric deposition
+# saveRDS(dat, "attribute_df.rds") # without atmospheric deposition, incorrect PRSNOW attribute
 saveRDS(dat, "attribute_df_add_nadp.rds") 
 
-# setwd("/Volumes/Blaszczak Lab/FSS/All Data")
-# saveRDS(dat, "attribute_df_4cl.rds") # data frame for attributes and 4 clusters (SCQ)
-
+########################################################################################################################################################
 # FEATURE SELECTION ####
 # Play with feature selection
+
+# Bring in attribute data, if you haven't already
 names(dat)
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 # dat <- readRDS("attribute_df.rds")
 dat <- readRDS("attribute_df_add_nadp.rds")
 
 dat <- dat %>%
-  select(-c("SiteID", "COMID"))
+  select(-c("SiteID", "COMID")) # Need to remove these columns before random forest analysis so they are not included
 sapply(dat, class)
 
 # Group land use classes: 
@@ -177,14 +178,37 @@ cor_high <-
   dplyr::arrange(Var1, Var2)
 
 # # This provides two rows per highly correlated pair of predictors
-# getwd()
-# saveRDS(check_cor, "corr_matrix_all_attributes.rds")
-# saveRDS(cor_high, "corr_high_all_attributes.rds")
+getwd()
+saveRDS(check_cor, "corr_matrix_all_attributes.rds")
+saveRDS(cor_high, "corr_high_all_attributes.rds")
 
 cor_high$Var1 <- factor(cor_high$Var1)
-(cor_remove <- levels(cor_high$Var1))
+(cor_remove <- levels(cor_high$Var1)) # Isolate the individual attributes that are highly correlated with at least one other attribute
+
+# Remove attributes according to Joanna's recommendations and other further investigations of correlation matrices and hypotheses for attribute impacts on salinity
+names(dat)
 dat <- dat %>%
-  select(-c("NID_STORAGE2013", "MAJOR2013", "Flowline_Length"))
+  select(-c(# PHYSIOGRAPHIC: 
+            "Flowline_Length", # Keep basin area instead
+            "Basin_Slope", # Keep stream slope instead
+            "Elevation_Mean", # Test model with min, min and max, and just mean
+            # CLIMATE and WATER BALANCE:
+            "WBM_PET", # Correlated with temperature, and we already have AET
+            "WBM_RUNOFF", # We want to keep precip
+            # GEOLOGY:
+            starts_with("BR_"), # Too broad/too big of differences within eac class for predictions of water quality dynamics (Olson & Hawkins 2012)
+            # SOILS: 
+            "Permeability", # Keep sand, silt, clay fractions instead
+            "Avg_Bulk_Density", # Keep OM_content instead
+            # ATMOSPHERIC DEPOSITION:
+            "NADP_SO4", # Keep NADP_CA and NADP_MG
+            # HYDRO MODIFICATION: Try only NDAMS, see how it changes when you swap it with any of these others, since they are all highly correlated
+            "NID_STORAGE2013", 
+            "MAJOR2013", 
+            "NORM_STORAGE2013"))
+
+# Save new dataframe to use in random forest
+saveRDS(dat, "attribute_tune_df.rds")
 
 # Look at correlations again
 check_cor <- 
@@ -194,12 +218,11 @@ cor_high <-
   check_cor %>% 
   reshape2::melt() %>% 
   subset(Var1 != Var2 & is.finite(value)) %>% 
-  subset(abs(value) > 0.9) %>% 
+  subset(abs(value) > 0.7) %>% # Changed threshold to 0.7
   dplyr::distinct() %>% 
   dplyr::arrange(Var1, Var2)
 
-saveRDS(dat, "attribute_tune_df.rds")
-
+# All of the developed land uses are correlated and could potentially be combined
 
 
 # # Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
