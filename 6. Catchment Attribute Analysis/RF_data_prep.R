@@ -1,6 +1,6 @@
 # Create df to feed into random forest model
 
-library(dplyr)
+library(tidyverse)
 library(naniar)
 library(reshape2)
 
@@ -152,19 +152,6 @@ dat <- dat %>%
   select(-c("SiteID", "COMID")) # Need to remove these columns before random forest analysis so they are not included
 sapply(dat, class)
 
-# Group land use classes: 
-# Developed
-# Agriculture
-# Undeveloped
-# Open Water
-# dat <- dat %>%
-#   mutate(Developed_pct = DevelopedOpenSpace_pct + DevelopedHiIntensity_pct + DevelopedLowIntensity_pct + DevelopedMedIntensity_pct,
-#          Agriculture_pct = PastureHay_pct + CultivatedCrops_pct,
-#          Undeveloped_pct = PerennialIceSnow_pct + BarrenLand_pct + DeciduousForest_pct + EvergreenForest_pct + MixedForest_pct + ShrubScrub_pct + GrasslandHerbaceous_pct + WoodyWetlands_pct + EmergentHerbWetlands_pct)
-# dat <- dat %>%
-#   select(-c("DevelopedOpenSpace_pct", "DevelopedHiIntensity_pct", "DevelopedLowIntensity_pct", "DevelopedMedIntensity_pct", "PastureHay_pct", "CultivatedCrops_pct", "PerennialIceSnow_pct", "BarrenLand_pct", "DeciduousForest_pct", "EvergreenForest_pct", "MixedForest_pct", "ShrubScrub_pct", "GrasslandHerbaceous_pct", "WoodyWetlands_pct", "EmergentHerbWetlands_pct"))
-
-
 # Look at correlations between variables
 check_cor <- 
   cor(dat[,-1], use = "pairwise.complete.obs", method = "pearson")
@@ -223,24 +210,32 @@ cor_high <-
   dplyr::arrange(Var1, Var2)
 
 # All of the developed land uses are correlated and could potentially be combined
+# Group ALL land use classes: 
+# Developed
+# Agriculture
+# Undeveloped
+# Open Water
+# dat <- dat %>%
+#   mutate(Developed_pct = DevelopedOpenSpace_pct + DevelopedHiIntensity_pct + DevelopedLowIntensity_pct + DevelopedMedIntensity_pct,
+#          Agriculture_pct = PastureHay_pct + CultivatedCrops_pct,
+#          Undeveloped_pct = PerennialIceSnow_pct + BarrenLand_pct + DeciduousForest_pct + EvergreenForest_pct + MixedForest_pct + ShrubScrub_pct + GrasslandHerbaceous_pct + WoodyWetlands_pct + EmergentHerbWetlands_pct)
+# dat <- dat %>%
+#   select(-c("DevelopedOpenSpace_pct", "DevelopedHiIntensity_pct", "DevelopedLowIntensity_pct", "DevelopedMedIntensity_pct", "PastureHay_pct", "CultivatedCrops_pct", "PerennialIceSnow_pct", "BarrenLand_pct", "DeciduousForest_pct", "EvergreenForest_pct", "MixedForest_pct", "ShrubScrub_pct", "GrasslandHerbaceous_pct", "WoodyWetlands_pct", "EmergentHerbWetlands_pct"))
 
-
-# # Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
+# Group only DEVELOPED land use classes (Pearson correlation > 0.7)
+# Group
 dat <- dat %>%
-  select(-c("Stream_Slope", "MIRAD_Irrig_Ag_Land_pct", "BR_Gneiss" ,"BR_Granitic", "BR_Ultramafic",
-            "BR_Quarternary","BR_Sedimentary","BR_Volcanic", "BR_Anorthositic",
-            "BR_Intermediate"))
+  mutate(Developed_pct = DevelopedOpenSpace_pct + DevelopedHiIntensity_pct + DevelopedLowIntensity_pct + DevelopedMedIntensity_pct)
+# Delete individual columns
+dat <- dat %>%
+  select(-c("DevelopedOpenSpace_pct", "DevelopedHiIntensity_pct", "DevelopedLowIntensity_pct", "DevelopedMedIntensity_pct"))
 
+# Save new df
 saveRDS(dat, "attribute_tune_df.rds")
 
-# 
-# saveRDS(dat, "attribute_tune_df.rds") # NOT CURRENT
 
-# # Screw around with removing some other stuff and see what happens
-# # Get rid of some other things that aren't used in other analyses (Olson 2019) or that are definitely redundant and/or definitely correlated
-# dat <- dat %>%
-#   select(-c("Stream_Slope", "Flowline_Length", "MIRAD_Irrig_Ag_Land_pct", "BR_Gneiss" ,"BR_Granitic", "BR_Ultramafic",          
-#             "BR_Quarternary","BR_Sedimentary","BR_Volcanic", "BR_Anorthositic",        
-#             "BR_Intermediate", "NDAMS2013", "NID_STORAGE2013", "NORM_STORAGE2013", "MAJOR2013", "Salinity", "pH", "Thickness", "Elevation_Min", "Elevation_Max"))
-# 
-# saveRDS(dat, "attribute_tune_df.rds") # NOT CURRENT
+
+
+
+
+
