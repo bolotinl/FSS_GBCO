@@ -231,7 +231,7 @@ dat <- dat %>%
   select(-c("DevelopedOpenSpace_pct", "DevelopedHiIntensity_pct", "DevelopedLowIntensity_pct", "DevelopedMedIntensity_pct"))
 
 # Save new df
-saveRDS(dat, "attribute_tune_df.rds")
+saveRDS(dat, "attribute_tune_df_1.rds")
 
 
 
