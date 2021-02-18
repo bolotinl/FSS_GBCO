@@ -205,6 +205,7 @@ allSCdv <- rbindlist(allSCdv)
 # Save data:
 
 saveRDS(allSCdv, "WUS_all_USGS_SC_dv_data.rds")
+write.csv(allSCdv, "WUS_all_USGS_SC_dv_data.csv")
 
 # allSCdv <- readRDS("WUS_all_USGS_SC_dv_data.rds")
 # class(allSCdv$site_no)
@@ -289,6 +290,7 @@ alldisch <- rbindlist(alldisch)
 #--------
 # Save data:
 saveRDS(alldisch, "WUS_all_USGS_disch_dv_data.rds")
+write.csv(alldisch, "WUS_all_USGS_disch_dv_data.csv")
 
 # alldisch <- readRDS("WUS_all_USGS_disch_dv_data.rds")
 # class(alldisch$site_no)
