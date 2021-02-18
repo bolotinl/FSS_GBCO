@@ -298,7 +298,10 @@ saveRDS(alldisch, "WUS_all_USGS_disch_dv_data.rds")
 rm(disch1, disch2, disch3, disch4, disch5, disch6)
 
 # See what data we are missing from our final data files that were input into the dataRetrieval function to make sure we are not missing any data we could be using
+alldisch <- readRDS("WUS_all_USGS_disch_dv_data.rds")
+allSCdv <- readRDS("WUS_all_USGS_SC_dv_data.rds")
 both_huc_sites <- readRDS("WUS_USGS_disch_SC_sites.rds")
+
 both_huc_sites$Site_ID <- as.numeric(as.character(both_huc_sites$Site_ID))
 both_huc_sites$Site_ID <- ifelse(both_huc_sites$Site_ID < 1e7,
                                  yes = paste("0", both_huc_sites$Site_ID, sep=""),
@@ -306,14 +309,15 @@ both_huc_sites$Site_ID <- ifelse(both_huc_sites$Site_ID < 1e7,
 both_huc_sites <- subset(both_huc_sites, both_huc_sites$data_type_cd == "dv")
 both_huc_sites$Site_ID <- as.factor(as.character(both_huc_sites$Site_ID))
 
-# PICK UP HERE!!!!!!!!!!!!!!!!!!
 both_huc_sites_list <- unique(both_huc_sites$Site_ID)
 alldisch_sites_list <- unique(alldisch$site_no)
 allSCdv_sites_list <- unique(allSCdv$site_no)
+
 missing_disch <- setdiff(both_huc_sites_list, alldisch_sites_list)
 missing_SC <- setdiff(both_huc_sites_list, allSCdv_sites_list)
 
-siteNumber <- "09415000"
+# Try a few of the missing sites
+siteNumber <- "13046680" # Input SiteID's from missing_SC here 
 parameterCd <- "00095"
 startDate <- ""  
 endDate <- "" 
@@ -323,4 +327,4 @@ SC <- readNWISdv(siteNumber,
 parameterCd <- "00060"
 Q <- readNWISdv(siteNumber, 
                  parameterCd, startDate, endDate)
-# Simply put, not all of the potential SCdv sites 
+# None of the sites actually provide daily SC data, so we have gotten all the data we need
