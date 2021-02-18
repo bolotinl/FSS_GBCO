@@ -135,10 +135,15 @@ partialPlot(rf, train, Soil_Salinity, "1")
 partialPlot(rf, train, WBM_PRSNOW, "1")
 partialPlot(rf, train, BFI_pct, "1")
 
+library(pdp)
+partial(rf, plot = TRUE, pred.var = "Soil_Salinity") # creates plot
+partial(rf, plot = FALSE, pred.var = "Soil_Salinity") # gives values
+
+
 # for a spectrum of values for that variable, for which part of the spectrum does it tend to predict each class most strongly?
 # for a class with less accuracy and higher confusion, you may be able to see that in these plots
 
-
+library(ROCR)
 
 
 
