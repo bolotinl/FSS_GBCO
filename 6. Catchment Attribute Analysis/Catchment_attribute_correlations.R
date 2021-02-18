@@ -6,6 +6,7 @@ lapply(c("plyr","dplyr","ggplot2","cowplot","lubridate","boot",
 theme_set(theme_bw())
 
 ## Import
+setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 cm <- readRDS("corr_matrix_all_attributes.rds")
 colnames(cm)
 
