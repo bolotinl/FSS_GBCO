@@ -3,6 +3,7 @@
 library(tidyverse)
 library(naniar)
 library(reshape2)
+library(foreign)
 
 # CREATE ATTRIBUTE DFs####
 # Start by using almost all catchment attributes and see how the random forest model works
@@ -140,10 +141,42 @@ names(dat)
 dat <- subset(dat, dat$SiteID != "USGS-10312210")
 dat$SiteID <- factor(dat$SiteID)
 
+## Join HUC 2 region numbers
+dat <- readRDS("attribute_df_cluster_results.rds")
+huc <- readRDS("WUS_USGS_disch_SC_sites.rds")
+huc <- huc %>%
+  select(c(Site_ID, huc_cd))
 
-# Save a data frame that will help us keep track of the SiteID, Cluster, COMID
+huc$Site_ID <- as.numeric(as.character(huc$Site_ID))
+huc$Site_ID <- ifelse(huc$Site_ID < 10000000, paste0("0", huc$Site_ID), paste(huc$Site_ID))
+huc$Site_ID <- paste0("USGS-", huc$Site_ID)
+huc$huc_cd <- substr(huc$huc_cd, 1,2)
+huc <- huc %>% rename(SiteID = "Site_ID")
+huc <- huc %>% 
+  filter(SiteID %in% dat$SiteID) %>%
+  unique()
+
+
+dat <- merge(dat, huc, by = "SiteID", all.y = FALSE, all.x = TRUE)
+
+# Manually input HUC 2 region for the two Rio Grande sites whose data is not from the USGS
+# Region 13 is the Rio Grande Region
+dat$huc_cd[1:2] <- 13
+
+# Add Stream Order
+nhd_vaa <- read.dbf("/Volumes/Blaszczak Lab/FSS/NHD/PlusFlowlineVAA.dbf")
+nhd_vaa <- nhd_vaa %>%
+  select(c(ComID, StreamOrde))
+
+nhd_vaa <- nhd_vaa %>% rename(COMID = "ComID")
+
+dat <- merge(dat, nhd_vaa, by = "COMID", all.x = TRUE, all.y = FALSE)
+# Not available for all
+
+# Save 
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 saveRDS(dat, "attribute_df_cluster_results.rds")
+
 
 # Look at outliers in catchment attributes ####
 
