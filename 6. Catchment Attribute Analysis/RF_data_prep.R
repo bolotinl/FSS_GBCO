@@ -2,13 +2,17 @@
 
 library(tidyverse)
 
+## Bring in catchment attribute data
 setwd("/Volumes/Blaszczak Lab/FSS/All Data")
 dat <- readRDS("attribute_df_cluster_results.rds")
+names(dat)
+
+## Remove any columns we won't be using as predictors or response variables in the random forest
 dat <- dat %>%
-  select(-c("SiteID", "COMID")) # Need to remove these columns before random forest analysis so they are not included
+  select(-c(SiteID, COMID, StreamOrde, huc_cd)) 
 sapply(dat, class)
 
-# Look at correlations between variables
+## Look at correlations > 0.9 between variables ####
 check_cor <- 
   cor(dat[,-c(1:2)], use = "pairwise.complete.obs", method = "pearson")
 
@@ -20,7 +24,7 @@ cor_high <-
   dplyr::distinct() %>% 
   dplyr::arrange(Var1, Var2)
 
-# # This provides two rows per highly correlated pair of predictors
+# this provides two rows per highly correlated pair of predictors
 getwd()
 saveRDS(check_cor, "corr_matrix_all_attributes.rds")
 saveRDS(cor_high, "corr_high_all_attributes.rds")
@@ -28,8 +32,7 @@ saveRDS(cor_high, "corr_high_all_attributes.rds")
 cor_high$Var1 <- factor(cor_high$Var1)
 (cor_remove <- levels(cor_high$Var1)) # Isolate the individual attributes that are highly correlated with at least one other attribute
 
-# Filter by correlation ####
-# Remove attributes according to Joanna's recommendations and other further investigations of correlation matrices and hypotheses for attribute impacts on salinity
+## Remove attributes according to decisions based on the correlation matrix and hypotheses for attribute impacts on stream salinity
 names(dat)
 dat <- dat %>%
   select(-c(# PHYSIOGRAPHIC: 
@@ -52,10 +55,10 @@ dat <- dat %>%
             "MAJOR2013", 
             "NORM_STORAGE2013"))
 
-# Save new dataframe to use in random forest
+## Save new dataframe to use in random forest
 saveRDS(dat, "attribute_tune_df.rds")
 
-# Look at correlations again
+## Look at correlations > 0.8 between variables ####
 dat <- readRDS("attribute_tune_df.rds")
 check_cor <- 
   cor(dat[,-c(1:2)], use = "pairwise.complete.obs", method = "pearson")
@@ -64,14 +67,12 @@ cor_high <-
   check_cor %>% 
   reshape2::melt() %>% 
   subset(Var1 != Var2 & is.finite(value)) %>% 
-  subset(abs(value) > 0.7) %>% # Changed threshold to 0.7
+  subset(abs(value) > 0.8) %>% # Changed threshold to 0.7
   dplyr::distinct() %>% 
   dplyr::arrange(Var1, Var2)
 
-# Group Land Use ####
+# Group Land Use Classes into: ####
 
-# All of the developed land uses are correlated and could potentially be combined
-# Group ALL land use classes: 
 # Developed
 # Agriculture
 # Undeveloped
@@ -85,14 +86,42 @@ dat <- dat %>%
 dat <- dat %>%
   select(-c("DevelopedOpenSpace_pct", "DevelopedHiIntensity_pct", "DevelopedLowIntensity_pct", "DevelopedMedIntensity_pct", "PastureHay_pct", "CultivatedCrops_pct", "PerennialIceSnow_pct", "BarrenLand_pct", "DeciduousForest_pct", "EvergreenForest_pct", "MixedForest_pct", "ShrubScrub_pct", "GrasslandHerbaceous_pct", "WoodyWetlands_pct", "EmergentHerbWetlands_pct", "OpenWater_pct"))
 
-# Save new df
 saveRDS(dat, "attribute_tune_df_1.rds")
 
-dat <- readRDS("attribute_tune_df.rds")
+####
+# dat <- readRDS("attribute_tune_df.rds")
+# dat <- dat %>%
+#   select(-c(Stream_Slope, OLSON_SiO2, Thickness))
+# 
+# saveRDS(dat, "attribute_tune_df_2.rds")
+
+## Remove some other variables we don't have hypotheses for
+dat <- readRDS("attribute_tune_df_1.rds")
 dat <- dat %>%
   select(-c(Stream_Slope, OLSON_SiO2, Thickness))
+saveRDS(dat, "attribute_tune_df_1.5.rds")
 
-saveRDS(dat, "attribute_tune_df_2.rds")
+## Go further
+dat <- readRDS("attribute_tune_df_1.5.rds")
+
+check_cor <- 
+  cor(dat[,-c(1:2)], use = "pairwise.complete.obs", method = "pearson")
+
+cor_high <-
+  check_cor %>% 
+  reshape2::melt() %>% 
+  subset(Var1 != Var2 & is.finite(value)) %>% 
+  subset(abs(value) > 0.8) %>% # Changed threshold to 0.7
+  dplyr::distinct() %>% 
+  dplyr::arrange(Var1, Var2)
+
+
+
+
+dat <- dat %>%
+  select(-c(Agriculture_pct, WBM_TAVG, MIRAD_Irrig_Ag_Land_pct, OLSON_MgO))
+saveRDS(dat, "attribute_tune_df_1.75.rds")
+
 
 dat <- readRDS("attribute_tune_df_2.rds")
 dat <- dat %>%

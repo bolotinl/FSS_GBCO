@@ -7,7 +7,7 @@ dat <- readRDS("attribute_df_cluster_results.rds")
 
 # Remove unnecessary columns
 dat <- dat %>%
-  select(-c(Cluster_SC, COMID, SiteID))
+  select(-c(Cluster_SC, COMID, SiteID, StreamOrde, huc_cd))
 
 sapply(dat, class)
 
